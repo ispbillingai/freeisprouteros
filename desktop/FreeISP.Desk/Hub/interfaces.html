@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="day">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>FreeISP Desk · Interfaces</title>
+<link rel="stylesheet" href="hub.css"><link rel="stylesheet" href="interfaces.css">
+</head>
+<body>
+<aside>
+ <div class="brand"><img class="original-logo" src="freeisp-logo.png" alt="FreeISP — Connecting ISPs"><strong>Desk</strong></div>
+ <small class="eyebrow">YOUR NETWORK WORKSPACE</small>
+ <nav aria-label="Workspace"><button id="hub"><span aria-hidden="true">⌘</span> Device Hub</button><button class="active" aria-current="page"><span aria-hidden="true">⇄</span> Interfaces</button></nav>
+ <div class="rail-bottom"><span class="route-art" aria-hidden="true">● ────── ┐<br>　　　　　●</span><strong>A clear view of your network.</strong><p>Live connections.<br>Your workspace, always ready.</p><small>FREEISP DESK</small></div>
+</aside>
+<main>
+ <header><span class="crumb">WORKSPACE / INTERFACES</span><div class="themes" aria-label="Appearance"><button id="day" aria-pressed="true">☀ Day</button><button id="night" aria-pressed="false">☾ Night</button></div></header>
+ <div class="interface-workspace">
+  <div class="page-heading"><div><span class="eyebrow">YOUR NETWORK, IN VIEW</span><h1>Interfaces</h1><p id="router">Choose a router to see its connections.</p></div><button id="settings" class="secondary" disabled>Interface settings <span aria-hidden="true">↗</span></button></div>
+  <div class="connection-strip" id="connection-strip" data-state="waiting"><span class="status-dot" aria-hidden="true"></span><div><strong id="connection-status" role="status">Ready for your router</strong><p id="connection-detail">This workspace is on your computer. Router values will appear when connected.</p></div><span id="sample-age">No data received</span></div>
+  <section class="metrics" aria-label="Interface overview"><article><span>Interfaces</span><strong id="interface-count">—</strong><small>Reported by this router</small></article><article><span>Up</span><strong id="up-count">—</strong><small id="up-note">Waiting for status</small></article><article class="selected-metric"><span id="rx-label">Receive · selected interface</span><strong id="rx-rate">—</strong><small>Traffic into the interface</small></article><article class="selected-metric"><span id="tx-label">Transmit · selected interface</span><strong id="tx-rate">—</strong><small>Traffic out of the interface</small></article></section>
+  <section class="traffic-panel" aria-labelledby="traffic-title"><div class="section-heading"><div><span class="eyebrow">TRAFFIC PULSE</span><h2 id="traffic-title">Select an interface</h2></div><div class="legend"><span><i class="rx-key"></i> Receive</span><span><i class="tx-key"></i> Transmit</span></div></div><div class="chart-frame"><span id="chart-scale">—</span><svg id="traffic-chart" viewBox="0 0 800 150" role="img" aria-label="Traffic history is waiting for live samples" preserveAspectRatio="none"><path class="chart-grid" d="M0 5H800 M0 50H800 M0 95H800 M0 145H800"></path><path id="rx-path" class="traffic-line rx-line"></path><path id="tx-path" class="traffic-line tx-line"></path></svg><p id="chart-placeholder">Traffic rates appear after two readings.</p></div><div class="chart-caption"><span>Last 60 seconds</span><span id="chart-state">Waiting for readings</span><span>Now</span></div></section>
+  <section class="table-panel" aria-labelledby="table-title"><div class="section-heading"><div><h2 id="table-title">Connections</h2><p>Select an interface to follow its traffic.</p></div><label class="search"><span class="sr-only">Find an interface</span><input id="search" type="search" placeholder="Find an interface…" autocomplete="off"></label></div><div class="table-scroll"><table><thead><tr><th scope="col">Interface</th><th scope="col">State</th><th scope="col">Type</th><th scope="col">MTU</th><th scope="col">Receive</th><th scope="col">Transmit</th><th scope="col">Rx packets</th><th scope="col">Tx packets</th></tr></thead><tbody id="interface-rows"><tr><td colspan="8" class="table-empty">Waiting for router data. No connection status has been assumed.</td></tr></tbody></table></div><div class="table-footer"><span id="table-note">Live values update about once a second.</span><span>View only · use Interface settings to make changes</span></div></section>
+ </div>
+ <footer><span>FreeISP Desk / Interfaces</span><span>Your workspace stays open when the router is unavailable.</span></footer>
+</main><script src="interfaces.js"></script>
+</body></html>
