@@ -61,7 +61,7 @@ def main():
     customer = connect(12225)
     try:
         for client in (router, customer):
-            run(client, 'chpasswd', 'root:' + password + '\n')
+            run(client, 'passwd root', password + '\n' + password + '\n')
         run(router, "uci set system.@system[0].hostname='FreeISP-Lab'; uci commit system; /etc/init.d/system reload")
         # A cloned router must not retain the same local subnet as its uplink.
         run(customer, '''set -eu
