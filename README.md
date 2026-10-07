@@ -23,8 +23,9 @@ in separate Git worktrees, review and test changes, then push to GitHub before
 VPS deployment. Keep credentials, personalized images and private backups out of Git.
 Build outputs are kept under the ignored `artifacts/` directory.
 
-OpenWrt supplies the networking foundation. Subscriber accounts, PPPoE server,
-captive hotspot and per-subscriber enforcement remain additional product work;
+OpenWrt supplies the networking foundation. The [PPPoE service](openwrt/PPPOE.md)
+provides local subscriber accounts, profiles, address pools and rate limits.
+Captive hotspot and billing integration remain additional product work;
 a menu or installed package alone is not evidence that a feature has been tested.
 
 ## Supporting references

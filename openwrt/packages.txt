@@ -11,3 +11,9 @@ ip-full
 ip-bridge
 tcpdump-mini
 curl
+rp-pppoe-server
+ppp-mod-pppoe
+python3
+tc-full
+kmod-sched-core
+kmod-sched-act-police

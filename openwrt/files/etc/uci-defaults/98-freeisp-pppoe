@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+mkdir -p /etc/freeisp
+chmod 700 /etc/freeisp
+touch /etc/sysupgrade.conf
+grep -qxF '/etc/freeisp/pppoe.json' /etc/sysupgrade.conf || echo '/etc/freeisp/pppoe.json' >> /etc/sysupgrade.conf
+grep -qxF '/etc/freeisp/pppoe.key' /etc/sysupgrade.conf || echo '/etc/freeisp/pppoe.key' >> /etc/sysupgrade.conf
+uci -q batch <<'EOF'
+set firewall.freeisp_pppoe=zone
+set firewall.freeisp_pppoe.name='pppoe'
+set firewall.freeisp_pppoe.input='REJECT'
+set firewall.freeisp_pppoe.output='ACCEPT'
+set firewall.freeisp_pppoe.forward='REJECT'
+set firewall.freeisp_pppoe.family='ipv4'
+set firewall.freeisp_pppoe.device='fi-+'
+set firewall.freeisp_pppoe.mtu_fix='1'
+set firewall.freeisp_pppoe_wan=forwarding
+set firewall.freeisp_pppoe_wan.src='pppoe'
+set firewall.freeisp_pppoe_wan.dest='wan'
+commit firewall
+EOF
+/etc/init.d/freeisp-pppoe enable
+exit 0

@@ -84,8 +84,11 @@ SQM field semantics follow the
 
 ## Remaining platform work
 
-PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
-AP controller and the dashboard compatibility contract remain additional product work.
+The [PPPoE subscriber service](PPPOE.md) adds server, secret, profile and address
+pool management, per-account rates and live session controls. Pools reserve stable
+addresses per account. See its verification instructions and platform limits.
+Captive hotspot, billing plans, AP controller and the dashboard compatibility
+contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif
 are vendor-specific features, not OpenWrt features that can be renamed into existence.
 Wireless, switch offload, mesh and 802.1X need suitable hardware and their own tests.

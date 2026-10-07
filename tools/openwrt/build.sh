@@ -18,6 +18,7 @@ chmod 755 "$FILES/etc/uci-defaults/99-freeisp" "$FILES/usr/bin/freeisp-resources
 chmod 755 "$FILES/usr/libexec/freeisp-bridge-status"
 chmod 755 "$FILES/etc/uci-defaults/98-freeisp-wifi" "$FILES/etc/uci-defaults/99-freeisp" "$FILES/usr/bin/freeisp-resources"
 chmod 600 "$FILES/etc/config/freeisp_wifi"
+chmod 755 "$FILES/etc/uci-defaults/98-freeisp-pppoe" "$FILES/etc/init.d/freeisp-pppoe" "$FILES/usr/libexec/"freeisp-* "$FILES/usr/libexec/rpcd/freeisp.pppoe"
 mkdir -p "$FILES/etc/freeisp"
 export FREEISP_FILES="$FILES"
 python3 - <<'PY'
