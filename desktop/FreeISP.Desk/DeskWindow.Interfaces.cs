@@ -18,9 +18,10 @@ namespace FreeISP.Desk {
   async Task HandleInterfaceMessage(Dictionary<string,object> message){
    string action=Convert.ToString(message["action"]);
    if(action=="hub"){ShowHub();return;}
+   if(action=="disconnect"){CancelInterfaceRequests();routerData?.Dispose();routerData=null;ResetNavigationAssets();router=null;await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();return;}
    if(action=="openRouterPage"){
     string route=message.ContainsKey("route")?Convert.ToString(message["route"]):"";
-    var allowed=new[]{"freeisp","network/freeisp_interfaces","network/freeisp_bridge","network/freeisp_pppoe","network/freeisp_hotspot","network/freeisp_firewall","network/freeisp_queues","network/freeisp_tools","system/freeisp_files","status/freeisp_log","wifi/interfaces"};
+    var allowed=new[]{"freeisp","status/overview","wifi/interfaces","network/freeisp_interfaces","network/freeisp_bridge","network/freeisp_pppoe","network/freeisp_hotspot","network/freeisp_firewall","network/dhcp","network/dns","network/freeisp_ip_service","network/routes","network/freeisp_queues","services/nlbw/display","system/system","system/freeisp_files","status/freeisp_log","network/freeisp_tools","system/freeisp_command_line","system/package-manager"};
     if(router!=null&&Array.IndexOf(allowed,route)>=0){CancelInterfaceRequests();await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/"+route));}
     return;
    }

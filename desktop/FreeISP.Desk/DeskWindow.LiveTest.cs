@@ -27,7 +27,14 @@ namespace FreeISP.Desk {
     await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#routers .select').click();document.querySelector('#connect').click();");
     await WaitForCheck(()=>IsInterfaces(browser.Source)&&!loading.Visible&&!navigating,"Saved-password reconnect failed.",25000);
     await WaitForScript("document.querySelector('#connection-strip').dataset.state==='live'","Live data did not recover.");
-    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"live-router-test.json"),json.Serialize(new{passed=true,hubLogin=true,savedPasswordReconnect=true,localInterfacesRendered=true,realCounters=true,trafficRates=true,offlineLayoutMilliseconds=timer.ElapsedMilliseconds,offlineRemainsUsable=true}));Environment.ExitCode=0;Close();
+    await WaitForScript("document.querySelectorAll('.freeisp-sidebar nav button').length===21", "Full local sidebar is missing.");
+    await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-route=freeisp]').click()");
+    await WaitForCheck(()=>!IsHub(browser.Source)&&!loading.Visible&&!navigating,"Router workspace did not open.",30000);
+    await WaitForScript("!!window.freeispNavigation && document.querySelectorAll('.freeisp-sidebar a').length===21", "Shared router navigation is missing.");
+    await browser.CoreWebView2.ExecuteScriptAsync("window.__deskSameDocument='ready';document.querySelector('.freeisp-sidebar a[href$=freeisp_pppoe]').click()");
+    await WaitForScript("document.querySelector('#view').dataset.freeispState==='ready' && !!document.querySelector('.pp-window')", "PPPoE workspace did not open.");
+    await WaitForScript("window.__deskSameDocument==='ready' && document.querySelectorAll('.freeisp-sidebar a').length===21", "Menu click restarted the router document.");
+    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"live-router-test.json"),json.Serialize(new{passed=true,hubLogin=true,savedPasswordReconnect=true,localInterfacesRendered=true,realCounters=true,trafficRates=true,offlineLayoutMilliseconds=timer.ElapsedMilliseconds,offlineRemainsUsable=true,fullSidebarPreserved=true,sharedMenuNavigation=true,pppoeRendered=true}));Environment.ExitCode=0;Close();
    }catch(Exception ex){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"live-router-test.json"),json.Serialize(new{passed=false,error=ex.Message}));Environment.ExitCode=1;Close();}
   }
  }

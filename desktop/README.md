@@ -1,5 +1,22 @@
 # FreeISP Desk for Windows — Device Hub
 
+Version 0.3.1 preserves the full router sidebar in the local Interfaces view.
+All sidebar routes remain available in the same order. Router menu navigation
+reuses the loaded LuCI runtime instead of restarting the document, translations,
+menu and common libraries on each click. The destination heading appears while
+fresh settings arrive; data and configuration are not cached. PPPoE and Hotspot
+render their complete tabs/table controls before their initial data request,
+with writes disabled until that request succeeds.
+
+The shared navigator checks fresh router HTML for the session, route permission
+and read-only state, removes old polling and event callbacks, ignores late
+renders, reloads UCI values, and preserves unsaved-change guards. Overview's
+native template widgets are supported. A changed UI release causes a full
+reload; public revision checks are reused for at most 30 seconds. The native
+app keeps the router shell visible during normal navigation and retains bounded
+recovery controls. Fresh values can still take seconds on the software-emulated
+VPS; this release does not claim instantaneous router responses.
+
 Version 0.3.0 opens a bundled Interfaces workspace after login. Its layout,
 search, Day/Night themes, table and traffic chart are local, so rendering does
 not wait for a router page or release-manifest download. The native app reads
@@ -97,7 +114,7 @@ untrusted hints; HTTPS certificate checks remain enabled when connecting.
 ## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.3.0
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.3.1
 
 Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
 Hub and are also usable as a static design preview; login and discovery require
@@ -118,7 +135,7 @@ the executable; no router credentials or live connection are used by this check.
 The test also verifies the explicit Windows identity, local shell and cache
 origin/type/size/revision guards. Run the real WebView cache fixture on Windows:
 
-    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe" --output artifacts/tests/cache-browser
+    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.3.1/FreeISP Desk.exe" --output artifacts/tests/cache-browser
 
 This serves only a loopback fixture and runs a hidden, isolated application
 profile. It verifies first network load, local asset reuse, revision refresh,
@@ -128,7 +145,7 @@ script, then repairs that script without changing the revision. It verifies
 timeout recovery, a network retry, retained cookies, subsequent cache reuse,
 and returning to the local hub during stuck rendering and document loading:
 
-    python tools/desktop/test_readiness.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe" --output artifacts/tests/readiness-browser
+    python tools/desktop/test_readiness.py "artifacts/releases/freeisp-desk-v0.3.1/FreeISP Desk.exe" --output artifacts/tests/readiness-browser
 
 The readiness test uses a shorter deadline in an isolated loopback-only
 test profile; normal operation uses 30 seconds. These fixtures do not test
@@ -146,7 +163,7 @@ Router Tools button and ping. These tests do not use a production router.
 Local Interfaces checks:
 
     node tools/desktop/test_local_interfaces.cjs
-    python tools/desktop/test_router_data.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe"
+    python tools/desktop/test_router_data.py "artifacts/releases/freeisp-desk-v0.3.1/FreeISP Desk.exe"
 
 The browser fixture covers immediate layout, themes, unknown/stale data, rates,
 chart rendering, non-overlapping polling and connection changes. The native
@@ -156,3 +173,5 @@ router forwarded to loopback, `--live-router-test --test-router=http://127.0.0.1
 uses the temporary `FREEISP_TEST_PASSWORD` environment variable to verify login,
 real counters/rates, offline layout and saved-password reconnect. Test profiles
 are isolated; the test does not change router configuration.
+
+Shared menu lifecycle regression: `node tools/openwrt/test-fast-navigation.cjs`.

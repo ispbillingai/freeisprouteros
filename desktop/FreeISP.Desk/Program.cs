@@ -64,7 +64,7 @@ namespace FreeISP.Desk {
   public DeskWindow(){
    Text="FreeISP Desk";Size=new Size(1320,900);MinimumSize=new Size(960,650);StartPosition=FormStartPosition.CenterScreen;
    Icon=new Icon(Path.Combine(Program.Assets,"freeisp.ico"));ShowIcon=true;
-   if(selfTest){ShowInTaskbar=false;Opacity=0;var timer=new Timer{Interval=45000};timer.Tick+=(s,e)=>{File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),"{\"passed\":false,\"error\":\"timeout\"}");Environment.Exit(1);};timer.Start();}
+   if(selfTest){ShowInTaskbar=false;Opacity=0;var timer=new Timer{Interval=liveRouterTest?90000:45000};timer.Tick+=(s,e)=>{File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),"{\"passed\":false,\"error\":\"timeout\"}");Environment.Exit(1);};timer.Start();}
    var brand=new PictureBox{Left=12,Top=7,Width=38,Height=38,SizeMode=PictureBoxSizeMode.Zoom,Image=Image.FromFile(Path.Combine(Program.Assets,"Hub","freeisp-logo.png"))};
    var title=new Label{Text="FreeISP Desk",ForeColor=Color.White,Font=new Font("Segoe UI",11,FontStyle.Bold),AutoSize=true,Left=59,Top=16};
    var home=ShellButton("Device Hub",185,100);home.Click+=(s,e)=>{if(browser.CoreWebView2!=null)ShowHub();};
