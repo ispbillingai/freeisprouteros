@@ -34,7 +34,7 @@ return view.extend({
                 E('strong', {}, 'Your platform, with a tested foundation.'),
                 E('p', {}, 'Choose FreeISP, FreeISP Night, Bootstrap or OpenWrt 2020 under System → System → Language and Style. Router settings and add-on packages remain available through LuCI.'),
                 E('p', {}, 'This target is a virtual router. It has no wireless radio or hardware switch. PPPoE server, hotspot and FreeISP subscriber plans are not configured. RADIUS is excluded. SQM is not a per-subscriber billing system.'),
-                E('p', {}, 'Keep a settings backup. Hardware images must match their exact device; this VM image is not Tenda firmware.')
+                E('p', {}, 'Keep a settings backup. Hardware images must match their exact device; this image is for a virtual machine.')
             ])
         ]);
     },

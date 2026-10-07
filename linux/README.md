@@ -3,7 +3,7 @@
 An independent Linux router appliance, initially built for an isolated x86_64 VM.
 It uses Alpine Linux, nftables and dnsmasq, with FreeISP configuration management
 and a HTTPS web interface. This is not a laptop installer or Raspberry Pi image.
-No Tenda firmware is involved. Hardware ports will require separate builds and tests.
+Hardware ports will require separate builds and tests.
 
 ## Current scope
 
