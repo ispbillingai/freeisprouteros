@@ -35,9 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var activeAssigned = false;
     var entries = [
         ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'], ['WiFi', 'wifi/interfaces'],
-        ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/freeisp_bridge'],
-        ['PPPoE', 'network/freeisp_pppoe'], ['Hotspot', 'network/freeisp_hotspot'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'], ['IP Service', 'network/freeisp_ip_service'],
-        ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
+        ['Network', null], ['Interfaces', 'network/freeisp_interfaces'], ['Bridge / VLAN', 'network/freeisp_bridge'],
+        ['PPPoE', 'network/freeisp_pppoe'], ['Hotspot', 'network/freeisp_hotspot'], ['Firewall', 'network/freeisp_firewall'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'], ['IP Service', 'network/freeisp_ip_service'],
+        ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],
         ['System', 'system/system'], ['Files', 'system/freeisp_files'], ['Log', 'status/freeisp_log'],
         ['Tools', 'network/freeisp_tools'], ['Command Line', 'system/freeisp_command_line'], ['Software', 'system/package-manager'], ['Logout', 'logout']

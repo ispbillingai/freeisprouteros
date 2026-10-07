@@ -10,12 +10,12 @@ return view.extend({
     render: function(data) {
         var links = [
             ['WiFi', 'Interfaces, security profiles, channels, access lists and connected clients.', ['wifi','interfaces']],
-            ['Interfaces', 'Ports, addresses and PPPoE client connections.', ['network','network']],
+            ['Interfaces', 'Ports, addresses and VLAN interfaces.', ['network','freeisp_interfaces']],
             ['Bridge / VLAN', 'Bridge ports, tagged and untagged VLANs and learned hosts.', ['network','freeisp_bridge']],
             ['Files', 'Persistent router file storage, upload and download.', ['system','freeisp_files']],
             ['Hotspot', 'Captive access, local accounts, profiles and active sessions.', ['network','freeisp_hotspot']],
             ['PPPoE', 'Servers, subscriber secrets, profiles, address pools and active connections.', ['network','freeisp_pppoe']],
-            ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
+            ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','freeisp_firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],
             ['DNS', 'DNS forwarding, local names and upstream resolvers.', ['network','dns']],
             ['IP Service', 'API, FTP, SSH, FreeISP Desk and web management connections.', ['network','freeisp_ip_service']],

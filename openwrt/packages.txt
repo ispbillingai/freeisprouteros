@@ -29,3 +29,5 @@ ucode
 ucode-mod-fs
 ucode-mod-ubus
 rpcd-mod-file
+luci-app-firewall
+conntrack

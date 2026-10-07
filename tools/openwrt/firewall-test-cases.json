@@ -1,0 +1,262 @@
+{
+  "zones": [
+    {
+      ".name": "zone_lan",
+      ".type": "zone",
+      "name": "lan",
+      "input": "REJECT",
+      "forward": "REJECT",
+      "output": "ACCEPT"
+    },
+    {
+      ".name": "zone_wan",
+      ".type": "zone",
+      "name": "wan",
+      "input": "REJECT",
+      "forward": "REJECT",
+      "output": "ACCEPT"
+    },
+    {
+      ".name": "zone_management",
+      ".type": "zone",
+      "name": "management",
+      "input": "REJECT",
+      "forward": "REJECT",
+      "output": "ACCEPT"
+    }
+  ],
+  "ipsets": [
+    {
+      ".name": "trusted_set",
+      ".type": "ipset",
+      "name": "trusted",
+      "family": "ipv4",
+      "match": [
+        "src_net"
+      ],
+      "entry": [
+        "192.0.2.0/24"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      ".name": "filter_accept",
+      ".type": "rule",
+      "name": "Fixture allow",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "ACCEPT",
+      "src": "lan",
+      "dest": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": [],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [
+        "443"
+      ],
+      "ipset": "trusted"
+    },
+    {
+      ".name": "filter_drop",
+      ".type": "rule",
+      "name": "Fixture deny",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "DROP",
+      "src": "lan",
+      "dest": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": [
+        "198.51.100.2"
+      ],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [],
+      "ipset": ""
+    },
+    {
+      ".name": "filter_v6",
+      ".type": "rule",
+      "name": "Fixture v6",
+      "family": "ipv6",
+      "enabled": "1",
+      "target": "ACCEPT",
+      "src": "lan",
+      "dest": "wan",
+      "proto": [
+        "ipv6-icmp"
+      ],
+      "src_ip": [
+        "2001:db8::/64"
+      ],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [],
+      "ipset": ""
+    },
+    {
+      ".name": "mark",
+      ".type": "rule",
+      "name": "Fixture mark",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "MARK",
+      "src": "lan",
+      "dest": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": [],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [],
+      "ipset": "",
+      "set_mark": "0x1/0xff",
+      "set_dscp": ""
+    },
+    {
+      ".name": "dscp",
+      ".type": "rule",
+      "name": "Fixture DSCP",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "DSCP",
+      "src": "lan",
+      "dest": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": [],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [],
+      "ipset": "",
+      "set_mark": "",
+      "set_dscp": "AF41"
+    },
+    {
+      ".name": "notrack",
+      ".type": "rule",
+      "name": "Fixture untracked",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "NOTRACK",
+      "src": "lan",
+      "proto": [
+        "udp"
+      ],
+      "src_ip": [],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [
+        "123"
+      ]
+    },
+    {
+      ".name": "helper",
+      ".type": "rule",
+      "name": "Fixture FTP helper",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "HELPER",
+      "src": "lan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": [],
+      "dest_ip": [],
+      "src_port": [],
+      "dest_port": [
+        "21"
+      ],
+      "set_helper": "ftp"
+    },
+    {
+      ".name": "forward",
+      ".type": "redirect",
+      "name": "Fixture forward",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "DNAT",
+      "src": "wan",
+      "dest": "lan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": "",
+      "dest_ip": "192.0.2.2",
+      "src_port": "",
+      "dest_port": "80",
+      "src_dip": "",
+      "src_dport": "8080",
+      "reflection": "1"
+    },
+    {
+      ".name": "snat",
+      ".type": "nat",
+      "name": "Fixture source NAT",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "SNAT",
+      "src": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": "192.0.2.0/24",
+      "dest_ip": "",
+      "src_port": "",
+      "dest_port": "",
+      "snat_ip": "203.0.113.2",
+      "snat_port": ""
+    },
+    {
+      ".name": "masquerade",
+      ".type": "nat",
+      "name": "Fixture masquerade",
+      "family": "ipv4",
+      "enabled": "1",
+      "target": "MASQUERADE",
+      "src": "wan",
+      "proto": [
+        "tcp"
+      ],
+      "src_ip": "",
+      "dest_ip": "",
+      "src_port": "",
+      "dest_port": "",
+      "snat_ip": "",
+      "snat_port": ""
+    },
+    {
+      ".name": "address_v4",
+      ".type": "ipset",
+      "name": "fixture4",
+      "family": "ipv4",
+      "match": [
+        "src_net"
+      ],
+      "entry": [
+        "192.0.2.0/24",
+        "198.51.100.1"
+      ]
+    },
+    {
+      ".name": "address_v6",
+      ".type": "ipset",
+      "name": "fixture6",
+      "family": "ipv6",
+      "match": [
+        "dest_net"
+      ],
+      "entry": [
+        "2001:db8::/64"
+      ]
+    }
+  ]
+}

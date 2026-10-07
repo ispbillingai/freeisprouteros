@@ -37,5 +37,31 @@
         "luci-app-freeisp-command-line"
       ]
     }
+  },
+  "admin/network/freeisp_firewall": {
+    "title": "Firewall",
+    "order": 8,
+    "action": {
+      "type": "view",
+      "path": "freeisp/firewall"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp-firewall"
+      ]
+    }
+  },
+  "admin/network/freeisp_interfaces": {
+    "title": "FreeISP Interfaces",
+    "order": 5,
+    "action": {
+      "type": "view",
+      "path": "freeisp/interfaces"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp-interfaces"
+      ]
+    }
   }
 }

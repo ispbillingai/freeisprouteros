@@ -1,0 +1,74 @@
+#!/bin/sh
+# Read-only firewall snapshot. The RPC ACL exposes this command, never nft itself.
+# Arguments are deliberately rejected; all paths and commands are fixed.
+if [ "$#" -ne 0 ]; then
+    printf '%s\n' '{"error":"Firewall status takes no arguments."}'
+    exit 2
+fi
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+umask 077
+if [ ! -r /usr/share/libubox/jshn.sh ]; then
+    printf '%s\n' '{"error":"OpenWrt JSON support is unavailable."}'
+    exit 1
+fi
+. /usr/share/libubox/jshn.sh
+work=$(mktemp -d /tmp/freeisp-firewall.XXXXXX) || exit 1
+trap 'rm -rf "$work"' EXIT HUP INT TERM
+
+# Keep each source independent: a missing conntrack tool must not hide nft rules.
+json_init
+json_add_int version 1
+json_add_object nft
+nft -j list table inet fw4 >"$work/nft" 2>"$work/error"
+status=$?
+if [ "$(wc -c <"$work/nft")" -gt 4194304 ]; then
+    status=1
+    printf '%s\n' 'The live ruleset exceeds the 4 MiB snapshot limit.' >"$work/error"
+    : >"$work/nft"
+fi
+json_add_int code "$status"
+json_add_string stdout "$(cat "$work/nft")"
+json_add_string stderr "$(head -c 2048 "$work/error")"
+json_close_object
+
+json_add_object connections
+if [ -r /proc/net/nf_conntrack ]; then
+    source=/proc/net/nf_conntrack
+    head -n 5001 "$source" >"$work/connections" 2>"$work/error"
+    status=$?
+elif command -v conntrack >/dev/null 2>&1; then
+    source=conntrack
+    conntrack -L -o extended >"$work/connections" 2>"$work/error"
+    status=$?
+else
+    source=unavailable
+    status=1
+    : >"$work/connections"
+    printf '%s\n' 'Connection tracking is unavailable: install conntrack or enable the nf_conntrack proc interface.' >"$work/error"
+fi
+json_add_int code "$status"
+json_add_string source "$source"
+json_add_int limit 5000
+if [ "$(wc -l <"$work/connections")" -gt 5000 ]; then
+    json_add_boolean truncated 1
+else
+    json_add_boolean truncated 0
+fi
+json_add_string stdout "$(head -n 5000 "$work/connections")"
+json_add_string stderr "$(head -c 2048 "$work/error")"
+json_close_object
+
+json_add_object helpers
+if [ -r /usr/share/firewall4/helpers ]; then
+    json_add_int code 0
+    json_add_string stdout "$(cat /usr/share/firewall4/helpers)"
+else
+    json_add_int code 1
+    json_add_string stderr 'The firewall4 helper catalogue is unavailable.'
+fi
+json_close_object
+json_add_string modules "$(cat /proc/modules 2>/dev/null)"
+json_add_string installedModules "$(find /lib/modules -type f -name '*conntrack*.ko*' 2>/dev/null)"
+json_dump

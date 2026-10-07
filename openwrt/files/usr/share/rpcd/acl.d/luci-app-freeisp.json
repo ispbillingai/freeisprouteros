@@ -115,5 +115,52 @@
         "system"
       ]
     }
+  },
+  "luci-app-freeisp-firewall": {
+    "description": "FreeISP firewall configuration and read-only runtime status",
+    "read": {
+      "uci": [
+        "firewall"
+      ],
+      "ubus": {
+        "file": [
+          "exec"
+        ]
+      },
+      "file": {
+        "/usr/bin/freeisp-firewall-status": [
+          "exec"
+        ]
+      }
+    },
+    "write": {
+      "uci": [
+        "firewall"
+      ]
+    }
+  },
+  "luci-app-freeisp-interfaces": {
+    "description": "FreeISP interface and VLAN device configuration",
+    "read": {
+      "uci": [
+        "network"
+      ],
+      "ubus": {
+        "network.interface": [
+          "dump"
+        ],
+        "network.device": [
+          "status"
+        ],
+        "luci-rpc": [
+          "getNetworkDevices"
+        ]
+      }
+    },
+    "write": {
+      "uci": [
+        "network"
+      ]
+    }
   }
 }

@@ -83,3 +83,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y nftables iproute2 iputils-ping
           sudo python3 tools/openwrt/test_hotspot_runtime.py -v
+          node tools/openwrt/test-interfaces.cjs
+          node tools/openwrt/test-firewall.cjs
+          node tools/openwrt/test-firewall-runtime.cjs
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/interfaces.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/firewall.js
