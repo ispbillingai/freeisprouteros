@@ -9,3 +9,9 @@ luci-proto-wireguard
 ip-full
 tcpdump-mini
 curl
+rp-pppoe-server
+ppp-mod-pppoe
+python3
+tc-full
+kmod-sched-core
+kmod-sched-act-police

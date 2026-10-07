@@ -10,11 +10,12 @@ return view.extend({
     render: function(data) {
         var links = [
             ['Interfaces & bridges', 'Ports, addresses, bridges, VLANs and PPPoE client connections.', ['network','network']],
+            ['PPPoE', 'Servers, subscriber secrets, profiles, address pools and active connections.', ['network','freeisp_pppoe']],
             ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],
             ['DNS', 'DNS forwarding, local names and upstream resolvers.', ['network','dns']],
             ['Routing', 'IPv4 and IPv6 static routes and routing rules.', ['network','routes']],
-            ['Queues / SQM', 'Upload and download shaping per interface. Individual subscriber queues come later.', ['network','sqm']],
+            ['Queues / SQM', 'Upload and download shaping per interface. Configure PPPoE subscriber limits in their profiles.', ['network','sqm']],
             ['Bandwidth usage', 'Traffic accounting by local host through nlbwmon.', ['services','nlbw','display']],
             ['Diagnostics', 'Ping, traceroute and DNS lookup from the router.', ['network','diagnostics']],
             ['System & appearance', 'Identity, time and selectable interface themes.', ['system','system']],
@@ -33,7 +34,7 @@ return view.extend({
             E('div', {'class':'freeisp-note'}, [
                 E('strong', {}, 'Your platform, with a tested foundation.'),
                 E('p', {}, 'Choose FreeISP, FreeISP Night, Bootstrap or OpenWrt 2020 under System → System → Language and Style. Router settings and add-on packages remain available through LuCI.'),
-                E('p', {}, 'This target is a virtual router. It has no wireless radio or hardware switch. PPPoE server, hotspot and FreeISP subscriber plans are not configured. RADIUS is excluded. SQM is not a per-subscriber billing system.'),
+                E('p', {}, 'This target is a virtual router. It has no wireless radio or hardware switch. Configure subscriber services under PPPoE. Hotspot and FreeISP billing plans remain additional work. RADIUS is excluded. SQM is not a per-subscriber billing system.'),
                 E('p', {}, 'Keep a settings backup. Hardware images must match their exact device; this image is for a virtual machine.')
             ])
         ]);

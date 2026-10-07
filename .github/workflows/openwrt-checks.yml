@@ -17,6 +17,12 @@ jobs:
           python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/resources/view/freeisp/overview.js
           node --check openwrt/files/www/luci-static/resources/view/freeisp/quickset.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/pppoe.js
+          python3 -B tools/openwrt/test_pppoe.py
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-pppoe.json > /dev/null
+          python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-pppoe.json > /dev/null
+          sh -n openwrt/files/etc/init.d/freeisp-pppoe
+          for f in openwrt/files/usr/libexec/freeisp-pppoe-{pre-up,up,down}; do sh -n "$f"; done
           node tools/openwrt/test-quickset.cjs
           python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/freeisp/navigation.js

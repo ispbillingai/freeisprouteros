@@ -1,0 +1,7 @@
+{
+  "luci-app-freeisp-pppoe": {
+    "description": "Manage FreeISP PPPoE servers, pools, profiles and subscriber accounts",
+    "read": {"ubus": {"freeisp.pppoe": ["get", "status"]}},
+    "write": {"ubus": {"freeisp.pppoe": ["save", "disconnect"]}}
+  }
+}

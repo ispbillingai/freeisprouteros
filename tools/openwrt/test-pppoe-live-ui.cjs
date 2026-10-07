@@ -1,0 +1,54 @@
+/* Live browser check against the disposable local VM only. */
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const {chromium} = require('playwright');
+const password = /^Password:\s*(.+)$/m.exec(fs.readFileSync(process.env.FREEISP_TEST_CREDENTIALS, 'utf8'))[1].trim();
+(async () => {
+    const browser = await chromium.launch({headless: true, channel: 'msedge'});
+    try {
+        const context = await browser.newContext();
+        const login = await context.request.post('http://127.0.0.1:23976/cgi-bin/luci/admin/network/freeisp_pppoe', {form: {luci_username: 'root', luci_password: password}, maxRedirects: 0});
+        assert.equal(login.status(), 302);
+        const page = await context.newPage();
+        const errors = [];
+        page.on('pageerror', e => errors.push(e.message));
+        await page.goto('http://127.0.0.1:23976/cgi-bin/luci/admin/network/freeisp_pppoe');
+        await page.getByRole('tab', {name: 'Address Pools', exact: true}).waitFor({timeout: 30000});
+        assert.equal(await page.getByRole('tab').count(), 5);
+        await page.getByRole('tab', {name: 'Address Pools', exact: true}).click();
+        await page.getByRole('button', {name: '+ Add pool', exact: true}).click();
+        await page.getByLabel('Name', {exact: true}).fill('browser-pool');
+        await page.getByLabel('First address').fill('10.81.0.10');
+        await page.getByLabel('Last address').fill('10.81.0.30');
+        await page.getByRole('button', {name: 'Save to review', exact: true}).click();
+        await page.getByRole('tab', {name: 'Profiles', exact: true}).click();
+        await page.getByRole('button', {name: '+ Add profile', exact: true}).click();
+        assert(await page.getByLabel('Remote address pool').isVisible());
+        await page.getByLabel('Name', {exact: true}).fill('browser-profile');
+        await page.getByLabel('Local address', {exact: true}).fill('10.81.0.1');
+        await page.getByLabel('Remote address pool').selectOption({label: 'browser-pool'});
+        assert.equal(await page.getByLabel('Primary DNS').evaluate(el => el.required), false);
+        await page.getByRole('button', {name: 'Save to review', exact: true}).click();
+        await page.getByRole('dialog').waitFor({state: 'hidden'});
+        await page.getByRole('button', {name: 'Save & apply', exact: true}).click();
+        await page.locator('.modal').getByRole('button', {name: 'Save & apply', exact: true}).click();
+        await page.getByText('PPPoE settings saved and applied.', {exact: true}).waitFor({timeout: 30000});
+        await page.reload();
+        await page.getByRole('tab', {name: 'Profiles', exact: true}).click();
+        assert.match(await page.locator('.pp-table').innerText(), /browser-profile/);
+        await page.locator('.pp-table tbody tr').filter({hasText: 'browser-profile'}).getByRole('button', {name: 'Edit', exact: true}).click();
+        await page.getByLabel('Download · kbit/s').fill('4096');
+        await page.getByRole('button', {name: 'Save to review', exact: true}).click();
+        await page.getByRole('button', {name: 'Save & apply', exact: true}).click();
+        await page.locator('.modal').getByRole('button', {name: 'Save & apply', exact: true}).click();
+        await page.getByText('PPPoE settings saved and applied.', {exact: true}).waitFor({timeout: 30000});
+        await page.reload();
+        await page.getByRole('tab', {name: 'Profiles', exact: true}).click();
+        assert.match(await page.locator('.pp-table').innerText(), /4096 kbit\/s/);
+        await page.getByRole('tab', {name: 'Active Connections', exact: true}).click();
+        await page.screenshot({path: 'artifacts/tests/pppoe/live-router.png', fullPage: true});
+        assert.deepEqual(errors, []);
+        fs.writeFileSync('artifacts/tests/pppoe/live-result.json', JSON.stringify({passed: true, checks: ['authenticated LuCI view', 'create pool and profile through real RPC', 'save and reload persistence', 'edit profile rate and reload', 'live session view', 'no browser errors']}, null, 2));
+        console.log('Live OpenWrt browser: real pool/profile creation, save, reload, edit and session view passed.');
+    } finally { await browser.close(); fs.writeFileSync('artifacts/pppoe-lab/browser-done', 'done'); }
+})().catch(e => { console.error(e.message); process.exitCode = 1; });

@@ -1,0 +1,11 @@
+#!/usr/bin/python3
+"""Set MTU and a firewall-scoped device name before PPP negotiation begins."""
+import os
+import sys
+sys.path.insert(0, '/usr/lib/freeisp')
+from pppoe import CONFIG, read_json
+args = sys.argv[1:]
+options = args[args.index('file') + 1]
+sid = os.path.basename(options).removesuffix('.options')
+server = next(r for r in read_json(CONFIG)['servers'] if r['id'] == sid and r['enabled'])
+os.execv('/usr/sbin/pppd', ['pppd'] + args + ['ifname', 'fi-' + str(os.getpid()), 'mtu', str(server['mtu']), 'mru', str(server['mtu'])])

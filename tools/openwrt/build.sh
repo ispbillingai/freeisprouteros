@@ -15,6 +15,7 @@ printf '%s  %s\n' '313221253d9bac534e4a4ee6492a4941b4ba0f43200eceb8d16a4785470ae
 [ -d "$BUILDER" ] || tar --zstd -xf "$CACHE/imagebuilder.tar.zst" -C "$CACHE"
 cp -a "$PROJECT/openwrt/files/." "$FILES/"
 chmod 755 "$FILES/etc/uci-defaults/99-freeisp" "$FILES/usr/bin/freeisp-resources"
+chmod 755 "$FILES/etc/uci-defaults/98-freeisp-pppoe" "$FILES/etc/init.d/freeisp-pppoe" "$FILES/usr/libexec/"freeisp-* "$FILES/usr/libexec/rpcd/freeisp.pppoe"
 mkdir -p "$FILES/etc/freeisp"
 export FREEISP_FILES="$FILES"
 python3 - <<'PY'
