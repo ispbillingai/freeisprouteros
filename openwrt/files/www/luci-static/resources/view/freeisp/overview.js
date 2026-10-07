@@ -19,7 +19,7 @@ return view.extend({
             ['Diagnostics', 'Ping, traceroute and DNS lookup from the router.', ['network','diagnostics']],
             ['System & appearance', 'Identity, time and selectable interface themes.', ['system','system']],
             ['Backup & firmware', 'Configuration backup, restore and OpenWrt upgrade tools.', ['system','flash']],
-            ['Logs', 'System events and kernel messages.', ['status','syslog']],
+            ['Logs', 'Live system and kernel events, with freeze and filtering.', ['status','freeisp_log']],
             ['Software', 'Install and remove packages from OpenWrt repositories.', ['system','package-manager']],
             ['Commands', 'Authenticated maintenance commands; start with memory and uptime.', ['system','commands']]
         ];

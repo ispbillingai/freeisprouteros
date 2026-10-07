@@ -1,0 +1,26 @@
+name: FreeISP log checks
+on:
+  push:
+    paths: ['openwrt/**', 'tools/openwrt/test-logs*', '.github/workflows/log-checks.yml']
+  pull_request:
+    paths: ['openwrt/**', 'tools/openwrt/test-logs*', '.github/workflows/log-checks.yml']
+permissions:
+  contents: read
+jobs:
+  logs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check openwrt/files/www/luci-static/resources/view/freeisp/log.js
+      - run: node tools/openwrt/test-logs.cjs
+      - run: npm install --no-save --package-lock=false playwright@1.57.0
+      - run: npx playwright install --with-deps chromium
+      - run: node tools/openwrt/test-logs-ui.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: log-browser-checks
+          path: artifacts/tests/logs/
