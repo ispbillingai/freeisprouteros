@@ -9,7 +9,7 @@
  });
  let generation = null, devices = {}, rates = {}, history = {}, previous = null;
  let selected = null, sampleTime = null, receivedAt = null, received = false, connected = false;
- let inFlight = false, timer = null, disposed = false;
+ let inFlight = false, timer = null, disposed = false, hasRouter = false;
 
  function send(message) { if (native) native.postMessage(message); }
  function theme(value) {
@@ -22,17 +22,18 @@
  theme(preference === 'night' ? 'night' : 'day');
  $('day').onclick = () => theme('day'); $('night').onclick = () => theme('night');
  $('hub').onclick = () => send({action: 'hub'});
- $('settings').onclick = () => send({action: 'openRouterPage', route: 'network/freeisp_interfaces'});
+ $('settings').onclick = () => { if (hasRouter) send({action: 'openRouterPage', route: 'network/freeisp_interfaces'}); };
+ document.querySelectorAll('[data-route]').forEach(button => { button.onclick = () => { if (hasRouter) send({action: 'openRouterPage', route: button.dataset.route}); }; });
  $('search').oninput = drawTable;
 
  function cancelTimer() { clearTimeout(timer); timer = null; }
  function schedule(delay = 1000) {
   cancelTimer();
-  if (!disposed && !document.hidden && generation !== null && !inFlight && native) timer = setTimeout(request, delay);
+  if (!disposed && !document.hidden && hasRouter && generation !== null && !inFlight && native) timer = setTimeout(request, delay);
  }
  function request() {
   timer = null;
-  if (disposed || document.hidden || generation === null || inFlight || !native) return;
+  if (disposed || document.hidden || !hasRouter || generation === null || inFlight || !native) return;
   inFlight = true; send({action: 'interfacesSnapshot', generation});
  }
  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelTimer(); else schedule(0); });
@@ -65,9 +66,11 @@
   cancelTimer(); generation = context.generation; inFlight = false;
   devices = {}; rates = {}; history = {}; previous = null; selected = null;
   sampleTime = null; receivedAt = null; received = false; connected = false;
-  $('router').textContent = String(context.router || 'Connected router'); $('settings').disabled = false;
+  hasRouter = typeof context.router === 'string' && context.router.trim().length > 0;
+  $('router').textContent = hasRouter ? context.router : 'Choose a router to see its connections.'; $('settings').disabled = !hasRouter;
+  document.querySelectorAll('[data-route]').forEach(button => { button.disabled = !hasRouter; });
   $('search').value = ''; $('sample-age').textContent = 'No data received';
-  state('waiting', 'Reading router data', 'Your interface workspace is ready. Waiting for the first reading.');
+  state('waiting', hasRouter ? 'Reading router data' : 'Choose a router', hasRouter ? 'Your interface workspace is ready. Waiting for the first reading.' : 'Open Device Hub to connect. This workspace is ready on your computer.');
   draw(); schedule(0);
  }
  function snapshot(sample) {
@@ -155,7 +158,7 @@
   const m = event.data;
   if (!m || typeof m !== 'object') return;
   if (m.type === 'interfaceContext' && Number.isInteger(m.generation)) { if (generation === null || m.generation >= generation) reset(m); return; }
-  if (generation === null || m.generation !== generation) return;
+  if (!hasRouter || generation === null || m.generation !== generation) return;
   if (m.type === 'interfaceSnapshot') { inFlight = false; snapshot(m.sample); }
   if (m.type === 'interfaceError') { inFlight = false; fail(m.message); }
  });

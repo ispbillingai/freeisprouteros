@@ -35,6 +35,12 @@ const server = http.createServer((req, res) => {
   checks.immediate_local_layout_and_original_logo = true;
   const emit = message => page.evaluate(message => emitNative(message), message);
   const count = () => page.evaluate(() => bridgeMessages.filter(m => m.action === 'interfacesSnapshot').length);
+  await emit({type: 'interfaceContext', generation: 1, router: ''});
+  await page.waitForTimeout(1100);
+  assert.equal(await count(), 0); assert.equal(await page.locator('#connection-status').innerText(), 'Choose a router');
+  assert(await page.locator('#settings').isDisabled());
+  assert.equal(await page.locator('[data-route]:disabled').count(), 7);
+  checks.empty_router_stays_offline_without_polling = true;
   await emit({type: 'interfaceContext', generation: 10, router: 'Office gateway'});
   await page.waitForFunction(() => bridgeMessages.length === 1);
   await page.waitForTimeout(1200); assert.equal(await count(), 1);
@@ -85,9 +91,11 @@ const server = http.createServer((req, res) => {
   assert.match(await page.locator('#interface-rows').innerText(), /<img src=x/);
   checks.router_names_render_as_text = true;
   await page.locator('#settings').click(); await page.locator('#hub').click();
+  for (const button of await page.locator('[data-route]').all()) await button.click();
   const messages = await page.evaluate(() => bridgeMessages);
   assert(messages.some(m => m.action === 'openRouterPage' && m.route === 'network/freeisp_interfaces'));
   assert(messages.some(m => m.action === 'hub'));
+  for (const route of ['freeisp', 'network/freeisp_pppoe', 'network/freeisp_hotspot', 'network/freeisp_bridge', 'network/freeisp_firewall', 'network/freeisp_queues', 'network/freeisp_tools']) assert(messages.some(m => m.action === 'openRouterPage' && m.route === route));
   checks.native_navigation_contract = true;
   assert.deepEqual(errors, []); checks.no_browser_errors = true;
   fs.writeFileSync(path.join(output, 'result.json'), JSON.stringify({passed: true, checks}, null, 2));
