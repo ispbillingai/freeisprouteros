@@ -1,0 +1,25 @@
+'use strict';
+const $=id=>document.getElementById(id);
+let saved=[],nearby=[],view='all';
+const native=window.chrome && window.chrome.webview;
+function send(message){if(native)native.postMessage(message);else $('status').textContent='Preview only. Open FreeISP Desk for real connections and discovery.';}
+function theme(value){document.documentElement.dataset.theme=value;try{localStorage.setItem('freeisp-desk-theme',value);}catch(e){}$('day').setAttribute('aria-pressed',String(value==='day'));$('night').setAttribute('aria-pressed',String(value==='night'));}
+let pref;try{pref=localStorage.getItem('freeisp-desk-theme');}catch(e){}theme(pref==='night'?'night':'day');
+$('day').onclick=()=>theme('day');$('night').onclick=()=>theme('night');
+function addressHint(){let local=false;try{local=['127.0.0.1','localhost','[::1]'].includes(new URL($('address').value).hostname);}catch(e){}$('address-hint').textContent=local?'For this local address, start your SSH tunnel first.':$('address').value.startsWith('http://')?'HTTP is unencrypted. Use HTTPS or your trusted SSH tunnel.':'Use the router’s IP address or full HTTPS URL.';}
+$('address').oninput=addressHint;
+function select(router){$('address').value=router.address;$('username').value=router.username||'root';$('name').value=router.name||'';$('password').value='';$('status').textContent='';addressHint();$('password').focus();}
+function render(){const target=$('routers');target.replaceChildren();const list=view==='saved'?saved:view==='nearby'?nearby:saved.concat(nearby.filter(n=>!saved.some(s=>s.address.replace(/\/$/,'')===n.address.replace(/\/$/,''))));
+ if(!list.length){const box=document.createElement('div');box.className='empty';const symbol=document.createElement('span');symbol.textContent='◎';const title=document.createElement('strong');title.textContent=view==='nearby'?'Find FreeISP on your network':'Your routers will appear here';const hint=document.createElement('p');hint.textContent=view==='nearby'?'Discover local gateways, or add any router by its address.':'Connect and choose “Remember this router” to save it for next time.';box.append(symbol,title,hint);target.append(box);}
+ list.forEach(r=>{const card=document.createElement('article');card.className='card';const button=document.createElement('button');button.className='select';const icon=document.createElement('span');icon.className='device-icon';icon.textContent='▤';const content=document.createElement('div');const name=document.createElement('strong');name.textContent=r.name;const address=document.createElement('code');address.textContent=r.address;const source=document.createElement('small');source.textContent=r.source==='Local gateway'?'Discovered gateway · Identity not verified':'Saved on this device · Availability not checked';content.append(name,address,source);button.append(icon,content);button.onclick=()=>select(r);card.append(button);if(saved.includes(r)){const remove=document.createElement('button');remove.className='remove';remove.textContent='×';remove.setAttribute('aria-label','Forget '+r.name);remove.onclick=()=>send({action:'remove',address:r.address});card.append(remove);}target.append(card);});
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['all','saved','nearby'].forEach(v=>$(v+'-tab').classList.toggle('active',v===view));}
+function switchView(value){view=value;render();}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));['all','saved','nearby'].forEach(v=>$(v+'-tab').onclick=()=>switchView(v));
+$('scan').onclick=()=>{switchView('nearby');send({action:'discover'});};
+$('add').onclick=()=>{$('connection').reset();$('address').value='';$('username').value='root';$('password').value='';$('name').value='';$('name-field').hidden=true;$('status').textContent='';addressHint();$('address').focus();};
+$('remember').onchange=()=>{$('name-field').hidden=!$('remember').checked;};
+$('show-password').onclick=()=>{const show=$('password').type==='password';$('password').type=show?'text':'password';$('show-password').textContent=show?'Hide':'Show';$('show-password').setAttribute('aria-label',show?'Hide password':'Show password');};
+$('connection').onsubmit=e=>{e.preventDefault();send({action:'connect',address:$('address').value.trim(),username:$('username').value.trim(),password:$('password').value,name:$('name').value.trim(),remember:$('remember').checked});$('password').value='';};
+if(native)native.addEventListener('message',event=>{const m=event.data;if(m.type==='routers'){saved=m.routers;render();}if(m.type==='discovered'){nearby=m.routers;render();$('scan-status').textContent=m.message;$('scan').disabled=false;}if(m.type==='scan'){$('scan-status').textContent=m.message;$('scan').disabled=m.busy;}if(m.type==='status'){$('status').textContent=m.message;$('connect').disabled=!!m.busy;}});
+else $('ready').textContent='Design preview · Connections require the Windows app';
+render();

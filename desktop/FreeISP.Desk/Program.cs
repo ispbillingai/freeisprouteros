@@ -1,104 +1,118 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.NetworkInformation;
+using System.Text;
+using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
-
-namespace FreeISP.Desk
-{
-    internal static class Program
-    {
-        [STAThread]
-        private static void Main()
-        {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new DeskWindow());
-        }
+namespace FreeISP.Desk {
+ internal static class Program {
+  [STAThread] static void Main(){Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new DeskWindow());}
+ }
+ public class RouterEntry { public string name {get;set;} public string address {get;set;} public string username {get;set;} public string source {get;set;} }
+ internal sealed class DeskWindow:Form {
+  const string Hub="https://freeisp-desk.local/";
+  readonly WebView2 browser=new WebView2{Dock=DockStyle.Fill};
+  readonly JavaScriptSerializer json=new JavaScriptSerializer();
+  readonly string data=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"FreeISP","Desk");
+  readonly Panel controls=new Panel{Dock=DockStyle.Top,Height=40,BackColor=Color.FromArgb(11,36,53),Visible=false};
+  Uri router; bool busy; bool scanning;
+  public DeskWindow(){
+   Text="FreeISP Desk";Size=new Size(1320,900);MinimumSize=new Size(960,650);StartPosition=FormStartPosition.CenterScreen;
+   var home=new Button{Text="← Device Hub",Left=12,Top=6,Width=120,Height=28};home.Click+=(s,e)=>ShowHub();
+   var reload=new Button{Text="Reload",Left=140,Top=6,Width=80,Height=28};reload.Click+=(s,e)=>browser.Reload();
+   var logout=new Button{Text="Disconnect",Left=228,Top=6,Width=95,Height=28};logout.Click+=async(s,e)=>{router=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
+   controls.Controls.AddRange(new Control[]{home,reload,logout});Controls.Add(browser);Controls.Add(controls);
+   Shown+=async(s,e)=>{try{
+    Directory.CreateDirectory(data);
+    await browser.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(null,Path.Combine(data,"Browser")));
+    var core=browser.CoreWebView2;
+    core.SetVirtualHostNameToFolderMapping("freeisp-desk.local",Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Hub"),CoreWebView2HostResourceAccessKind.DenyCors);
+    core.Settings.IsPasswordAutosaveEnabled=false;core.Settings.IsGeneralAutofillEnabled=false;
+    core.WebMessageReceived+=HandleMessage;
+    core.NavigationStarting+=(sender,args)=>{Uri target;if(!Uri.TryCreate(args.Uri,UriKind.Absolute,out target)||(!IsHub(target)&&!SameRouter(target)))args.Cancel=true;};
+    core.NewWindowRequested+=(sender,args)=>args.Handled=true;
+    core.NavigationCompleted+=async(sender,args)=>{
+     if(IsHub(browser.Source)){controls.Visible=false;await Send(new{type="routers",routers=ReadRouters()});}
+     else if(!args.IsSuccess){ShowHub();MessageBox.Show("Could not reach the router. Check its address and your SSH tunnel. Certificate checks remain enabled.",Text);}
+    };
+    ShowHub();
+   }catch(Exception ex){MessageBox.Show("FreeISP Desk could not start. Install Microsoft Edge WebView2 Runtime if it is missing.\n\n"+ex.Message,Text,MessageBoxButtons.OK,MessageBoxIcon.Error);}};
+  }
+  bool IsHub(Uri u){return u!=null&&u.Scheme=="https"&&u.Host=="freeisp-desk.local"&&u.IsDefaultPort;}
+  bool SameRouter(Uri u){return router!=null&&u.Scheme==router.Scheme&&u.Authority==router.Authority;}
+  void ShowHub(){busy=false;controls.Visible=false;browser.CoreWebView2.Navigate(Hub);}
+  Task Send(object message){if(IsHub(browser.Source))browser.CoreWebView2.PostWebMessageAsJson(json.Serialize(message));return Task.CompletedTask;}
+  List<RouterEntry> ReadRouters(){try{return json.Deserialize<List<RouterEntry>>(File.ReadAllText(Path.Combine(data,"routers.json")))??new List<RouterEntry>();}catch{return new List<RouterEntry>();}}
+  public static Uri Address(string text){Uri u;text=(text??"").Trim();if(!text.Contains("://"))text="https://"+text;if(!Uri.TryCreate(text,UriKind.Absolute,out u)||(u.Scheme!="https"&&u.Scheme!="http")||string.IsNullOrEmpty(u.Host)||u.UserInfo.Length>0||u.Host=="freeisp-desk.local")throw new Exception("Enter a valid HTTP or HTTPS router address without credentials.");return new Uri(u.GetLeftPart(UriPartial.Authority));}
+  async void HandleMessage(object sender,CoreWebView2WebMessageReceivedEventArgs args){
+   Uri origin;if(!Uri.TryCreate(args.Source,UriKind.Absolute,out origin)||!IsHub(origin)||!IsHub(browser.Source))return;
+   try{
+    var m=json.Deserialize<Dictionary<string,object>>(args.WebMessageAsJson);
+    string action=Convert.ToString(m["action"]);
+    if(action=="discover"){await Discover();return;}
+    if(action=="remove"){var list=ReadRouters();list.RemoveAll(r=>r.address==Convert.ToString(m["address"]));File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));await Send(new{type="routers",routers=list});return;}
+    if(action!="connect"||busy)return;
+    var address=Address(Convert.ToString(m["address"]));var username=Convert.ToString(m["username"]);var password=Convert.ToString(m["password"]);
+    if(string.IsNullOrWhiteSpace(username)||string.IsNullOrEmpty(password))throw new Exception("Enter your router username and password.");
+    busy=true;await Send(new{type="status",message="Signing in…",busy=true});
+    // Authenticate without following redirects so credentials can only reach the chosen origin.
+    using(var handler=new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false})
+    using(var client=new HttpClient(handler){Timeout=TimeSpan.FromSeconds(20)}){
+     var url=new Uri(address,"/cgi-bin/luci/admin/freeisp");
+     using(var body=new FormUrlEncodedContent(new[]{new KeyValuePair<string,string>("luci_username",username),new KeyValuePair<string,string>("luci_password",password)}))
+     using(var response=await client.PostAsync(url,body)){
+      password=null;IEnumerable<string> headers;
+      if((int)response.StatusCode!=302||!response.Headers.TryGetValues("Set-Cookie",out headers))throw new Exception("Sign-in failed. Check the router address, username and password.");
+      string cookieName=address.Scheme=="https"?"sysauth_https":"sysauth_http";
+      string cookie=headers.Select(h=>h.Split(';')[0]).FirstOrDefault(h=>h.StartsWith(cookieName+"=",StringComparison.Ordinal));
+      if(cookie==null)throw new Exception("The router did not return a supported login session.");
+      var session=browser.CoreWebView2.CookieManager.CreateCookie(cookieName,cookie.Substring(cookieName.Length+1),address.Host,"/cgi-bin/luci/");
+      session.IsHttpOnly=true;session.IsSecure=address.Scheme=="https";session.SameSite=CoreWebView2CookieSameSiteKind.Strict;
+      browser.CoreWebView2.CookieManager.AddOrUpdateCookie(session);
+     }
     }
-
-    internal sealed class DeskWindow : Form
-    {
-        private readonly WebView2 browser = new WebView2 { Dock = DockStyle.Fill };
-        private readonly TextBox address = new TextBox { Width = 330, Text = "http://127.0.0.1:8874" };
-        private readonly Button connect = new Button { Text = "Connect", AutoSize = true, Enabled = false };
-        private readonly ToolStripStatusLabel status = new ToolStripStatusLabel("Starting browser…");
-        private Uri router;
-
-        public DeskWindow()
-        {
-            Text = "FreeISP Desk";
-            Size = new Size(1280, 860);
-            MinimumSize = new Size(860, 600);
-            StartPosition = FormStartPosition.CenterScreen;
-            Font = new Font("Segoe UI", 9);
-            var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42, Padding = new Padding(8), BackColor = Color.FromArgb(222, 228, 235) };
-            toolbar.Controls.Add(new Label { Text = "Router address", AutoSize = true, Margin = new Padding(0, 5, 8, 0) });
-            toolbar.Controls.Add(address);
-            toolbar.Controls.Add(connect);
-            var reload = new Button { Text = "Reload", AutoSize = true };
-            reload.Click += (s, e) => { if (browser.CoreWebView2 != null) browser.Reload(); };
-            toolbar.Controls.Add(reload);
-            var disconnect = new Button { Text = "Disconnect", AutoSize = true };
-            disconnect.Click += async (s, e) => {
-                if (browser.CoreWebView2 == null) return;
-                router = null;
-                browser.CoreWebView2.Stop();
-                browser.CoreWebView2.Navigate("about:blank");
-                await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();
-                status.Text = "Disconnected. Local browser session cleared.";
-            };
-            toolbar.Controls.Add(disconnect);
-            var bar = new StatusStrip();
-            bar.Items.Add(status);
-            Controls.Add(browser);
-            Controls.Add(toolbar);
-            Controls.Add(bar);
-            connect.Click += (s, e) => ConnectRouter();
-            address.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter && connect.Enabled) { e.SuppressKeyPress = true; ConnectRouter(); } };
-            Shown += async (s, e) => {
-                try {
-                    string profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FreeISP", "Desk", "Browser");
-                    var environment = await CoreWebView2Environment.CreateAsync(null, profile);
-                    await browser.EnsureCoreWebView2Async(environment);
-                    browser.CoreWebView2.Settings.IsPasswordAutosaveEnabled = false;
-                    browser.CoreWebView2.Settings.IsGeneralAutofillEnabled = false;
-                    browser.CoreWebView2.NavigationStarting += (sender, args) => {
-                        if (args.Uri == "about:blank") return;
-                        Uri target;
-                        if (router == null || !Uri.TryCreate(args.Uri, UriKind.Absolute, out target) || target.Scheme != router.Scheme || target.Authority != router.Authority) {
-                            args.Cancel = true;
-                            status.Text = "Navigation outside the connected router was blocked.";
-                        }
-                    };
-                    browser.CoreWebView2.NewWindowRequested += (sender, args) => { args.Handled = true; status.Text = "Open external links in your normal browser."; };
-                    browser.CoreWebView2.NavigationCompleted += (sender, args) => {
-                        if (router != null) status.Text = args.IsSuccess ? "Connected to " + router.Authority : "Connection failed: " + args.WebErrorStatus + ". Check the router or SSH tunnel, then retry.";
-                    };
-                    connect.Enabled = true;
-                    status.Text = "Enter a FreeISP router address and click Connect. The VPS test address needs the SSH tunnel running.";
-                }
-                catch (Exception ex) {
-                    status.Text = "Browser could not start.";
-                    MessageBox.Show("FreeISP Desk needs Microsoft Edge WebView2 Runtime.\n\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            };
-        }
-
-        private void ConnectRouter()
-        {
-            string input = address.Text.Trim();
-            if (!input.Contains("://")) input = "https://" + input;
-            Uri target;
-            if (!Uri.TryCreate(input, UriKind.Absolute, out target) || (target.Scheme != "https" && target.Scheme != "http") || string.IsNullOrEmpty(target.Host) || !string.IsNullOrEmpty(target.UserInfo)) {
-                MessageBox.Show("Enter a router address, such as https://10.77.0.1 or http://127.0.0.1:8874. Do not include passwords in the address.", Text);
-                return;
-            }
-            router = new Uri(target.GetLeftPart(UriPartial.Authority));
-            address.Text = router.AbsoluteUri;
-            status.Text = "Connecting to " + router.Authority + "…";
-            browser.CoreWebView2.Navigate(new Uri(router, "/cgi-bin/luci/admin/freeisp").AbsoluteUri);
-        }
+    if(m.ContainsKey("remember")&&Convert.ToBoolean(m["remember"])){
+     var list=ReadRouters();list.RemoveAll(r=>r.address==address.AbsoluteUri);
+     list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved"});
+     File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));
     }
+    router=address;controls.Visible=true;browser.CoreWebView2.Navigate(new Uri(router,"/cgi-bin/luci/admin/freeisp").AbsoluteUri);
+   }catch(Exception ex){await Send(new{type="status",message=ex is TaskCanceledException?"Connection timed out. Check the router or SSH tunnel.":ex is HttpRequestException?"Connection failed. Check the address, tunnel and HTTPS certificate.":ex.Message,busy=false});}finally{busy=false;}
+  }
+  public static bool Private(IPAddress ip){var b=ip.GetAddressBytes();return b.Length==4&&(b[0]==10||(b[0]==192&&b[1]==168)||(b[0]==172&&b[1]>=16&&b[1]<=31));}
+  async Task Discover(){
+   if(scanning)return;scanning=true;
+   try{
+    await Send(new{type="scan",busy=true,message="Checking local network gateways…"});
+    var gateways=NetworkInterface.GetAllNetworkInterfaces().Where(n=>n.OperationalStatus==OperationalStatus.Up&&n.NetworkInterfaceType!=NetworkInterfaceType.Loopback).SelectMany(n=>n.GetIPProperties().GatewayAddresses).Select(g=>g.Address).Where(Private).Select(ip=>ip.ToString()).Distinct().Take(16).ToArray();
+    var found=await Task.WhenAll(gateways.Select(async ip=>{
+     using(var handler=new HttpClientHandler{AllowAutoRedirect=false,UseProxy=false})
+     using(var client=new HttpClient(handler){Timeout=TimeSpan.FromSeconds(3)}){
+      foreach(var scheme in new[]{"https","http"})try{
+       string url=scheme+"://"+ip;
+       using(var response=await client.GetAsync(url+"/luci-static/freeisp/navigation.js",HttpCompletionOption.ResponseHeadersRead)){
+        if(!response.IsSuccessStatusCode)continue;
+        using(var stream=await response.Content.ReadAsStreamAsync()){
+         var bytes=new byte[16384];var read=stream.ReadAsync(bytes,0,bytes.Length);
+         if(await Task.WhenAny(read,Task.Delay(3000))!=read)continue;
+         int count=await read;var text=Encoding.UTF8.GetString(bytes,0,count);
+         if(text.Contains("FreeISP")&&text.Contains("freeisp-sidebar"))return new RouterEntry{name="FreeISP gateway",address=url,username="root",source="Local gateway"};
+        }
+       }
+      }catch(HttpRequestException){}catch(TaskCanceledException){}
+     }
+     return null;
+    }));
+    await Send(new{type="discovered",routers=found.Where(r=>r!=null).ToArray(),message="Gateway discovery finished. Other routers can be added by address."});
+   }catch(Exception){await Send(new{type="scan",busy=false,message="Discovery could not finish. You can still connect by address."});}finally{scanning=false;}
+  }
+ }
 }

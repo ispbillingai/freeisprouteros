@@ -1,26 +1,41 @@
-# FreeISP Desk for Windows
+# FreeISP Desk for Windows — Device Hub
 
-The first Windows client embeds the router's LuCI interface using Microsoft
-WebView2. Quick Set and other pages come from the connected router, so browser
-and desktop changes stay synchronized. This is an HTTP/HTTPS router manager;
-MikroTik WinBox protocol, MAC discovery and saved router profiles are not included.
+Version 0.2 replaces the blank opening screen with the FreeISP Device Hub,
+including Day/Night themes, direct router login, saved router cards and local
+IPv4 gateway discovery. The router still serves the management pages.
 
-Build with a .NET SDK and NuGet access:
+## Run
+
+Extract the entire ZIP into a new folder. Keep the Hub folder, runtime loaders
+and DLLs alongside FreeISP Desk.exe. Run FreeISP Desk.exe on 64-bit Windows with
+.NET Framework 4.8 and Microsoft Edge WebView2 Runtime installed.
+
+For the VPS lab, keep the SSH tunnel running and use http://127.0.0.1:8874.
+Enter the router credentials, not the VPS SSH credentials. For hardware, enter
+its HTTPS address. No passwords are embedded in the application.
+
+Remember this router saves its name, address and username on this Windows
+account. Passwords are not saved. Browser sessions remain until logout,
+disconnect, expiry or clearing the app profile. Device Hub returns to the local
+connection screen; Disconnect clears browser data. Use the router's Logout to
+terminate its server session.
+
+Discovery checks private IPv4 gateway addresses from active network adapters
+for the FreeISP interface. It does not scan the entire subnet, discover remote
+VPS routers, authenticate device identity, or implement WinBox/MAC discovery.
+Routers elsewhere on the LAN can be added manually. Discovery results are
+untrusted hints; HTTPS certificate checks remain enabled when connecting.
+
+## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2
 
-Distribute the entire output folder, including the WebView2 runtime loader and
-DLLs. Windows needs .NET Framework 4.8 and the Microsoft Edge WebView2 Runtime.
-No administrator rights are requested. Browser data stays under
-`%LOCALAPPDATA%\FreeISP\Desk\Browser`; password autofill and saving are disabled.
-Disconnect clears the local browser session. Use the router's Logout to terminate
-its server session. Certificate errors are not bypassed.
+Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
+Hub and are also usable as a static design preview; login and discovery require
+the Windows host. Messages from router pages cannot invoke host actions.
+Credentials are posted only to the chosen router origin without following
+redirects; the returned session cookie is installed in the embedded browser.
 
-For the VPS test router, run the existing SSH tunnel launcher first and connect
-to `http://127.0.0.1:8874`. Log in with the router account, not the VPS SSH account.
-For hardware, enter its HTTPS address. Credentials are never embedded in the app.
-
-The current Quick Set target is the virtual router with named WAN/LAN interfaces.
-Wireless, bridge-mode presets and VPN toggles are unavailable in this first view.
-Advanced interface/VPN configuration remains in the normal OpenWrt pages.
+No automatic application updater is included. Router-served interface updates
+appear after Reload; native client changes require replacing the app folder.
