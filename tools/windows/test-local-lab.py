@@ -5,6 +5,7 @@ import getpass
 import json
 import os
 from pathlib import Path
+import time
 import paramiko
 
 
@@ -33,7 +34,13 @@ def main():
     router = connect(12224)
     customer = connect(12225)
     try:
-        state = json.loads(run(customer, 'ubus call network.interface.wan status'))
+        for attempt in range(30):
+            state = json.loads(run(customer, 'ubus call network.interface.wan status'))
+            if state.get('up') and state.get('ipv4-address'):
+                break
+            time.sleep(2)
+        else:
+            raise RuntimeError('Customer did not receive an address from the router within 60 seconds.')
         print('Customer address:', state.get('ipv4-address'))
         print(run(customer, 'ip route'))
         print(run(customer, 'nslookup downloads.openwrt.org 10.77.0.1'))

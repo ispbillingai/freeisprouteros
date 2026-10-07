@@ -67,6 +67,7 @@ def main():
         run(customer, '''set -eu
 uci set system.@system[0].hostname='FreeISP-Customer'
 uci set network.lan.ipaddr='10.88.0.1'
+uci set network.wan.hostname='FreeISP-Customer'
 uci set dhcp.lan.ignore='1'
 uci set dhcp.freeisp.ip='10.77.0.1'
 uci commit
@@ -101,6 +102,7 @@ for theme in ('freeisp','freeisp-night'):
         setup += '\nrm -f /tmp/luci-indexcache /tmp/luci-modulecache/* /tmp/luci-indexcache.*\nsync\n'
         run(router, 'sh -s', setup, timeout=120)
         print('Published overlay installed: ' + str(count) + ' files. Checking real customer traffic...', flush=True)
+        run(customer, 'apk update && apk add iperf3', timeout=180)
         for attempt in range(30):
             state = json.loads(run(customer, 'ubus call network.interface.wan status'))
             if state.get('up') and state.get('ipv4-address'):
