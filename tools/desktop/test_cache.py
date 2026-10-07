@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import threading
 
-state = dict(revision='a' * 64, version='A', assets=0, api=0, html=0, postIntact=False)
+state = dict(revision='a' * 64, version='A', assets=0, api=0, html=0, manifests=0, postIntact=False)
 
 
 class Fixture(http.server.BaseHTTPRequestHandler):
@@ -21,6 +21,7 @@ class Fixture(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         kind = 'application/json'
         if self.path.startswith('/luci-static/freeisp/release.json'):
+            state['manifests'] += 1
             value = json.dumps({'revision': state['revision']})
         elif self.path == '/luci-static/freeisp/test.js':
             state['assets'] += 1

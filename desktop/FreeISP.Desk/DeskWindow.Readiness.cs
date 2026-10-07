@@ -13,7 +13,42 @@ namespace FreeISP.Desk {
   ulong activeNavigationId;
   bool navigationCompleted, closing, bypassPageCache;
   Uri retryTarget;
+  RouterAssetCache validatedAssetCache;
+  DateTime assetValidationExpires;
+  Task<RouterAssetCache> assetValidation;
+  Uri assetValidationOrigin;
+  int assetValidationEpoch;
+  bool routerPagePresented;
   int ReadyTimeoutMilliseconds { get { return readinessTest?1800:30000; } }
+
+  void ResetNavigationAssets(){assetValidationEpoch++;validatedAssetCache=null;assetValidation=null;assetValidationOrigin=null;assetValidationExpires=DateTime.MinValue;}
+
+  Task<RouterAssetCache> NavigationAssets(bool forceCheck=false){
+   Uri origin=router;
+   if(forceCheck)ResetNavigationAssets();
+   if(validatedAssetCache!=null&&validatedAssetCache.Revision!=null&&validatedAssetCache.Origin==origin&&DateTime.UtcNow<assetValidationExpires)return Task.FromResult(validatedAssetCache);
+   if(assetValidation!=null&&!assetValidation.IsCompleted&&assetValidationOrigin==origin)return assetValidation;
+   assetValidationOrigin=origin;
+   return assetValidation=ValidateNavigationAssets(origin,assetValidationEpoch);
+  }
+
+  async Task<RouterAssetCache> ValidateNavigationAssets(Uri origin,int epoch){
+   var next=new RouterAssetCache(Path.Combine(data,"RouterAssets"));await next.Prepare(origin);
+   if(epoch==assetValidationEpoch&&router==origin){
+    // Cache only public presentation assets, never router data or authentication.
+    // A missing/invalid manifest immediately disables the custom asset cache.
+    validatedAssetCache=next.Revision==null?null:next;
+    assetValidationExpires=DateTime.UtcNow.AddSeconds(30);
+   }
+   return next;
+  }
+
+  void ShowRouterNavigationProgress(string detail,bool forceOverlay=false){
+   connectionLabel.Text="Reading router settings…";
+   if(routerPagePresented&&!loading.Visible&&!forceOverlay){
+    retry.Visible=returnHub.Visible=false;browser.Visible=true;controls.BringToFront();
+   }else ShowProgress("Your network workspace",detail);
+  }
 
   bool CurrentNavigation(int generation,ulong id){return !closing&&!IsDisposed&&generation==navigationGeneration&&id==activeNavigationId;}
 
@@ -27,9 +62,9 @@ namespace FreeISP.Desk {
    if(!approved&&!redirect){navigationGeneration++;bypassPageCache=false;assetCache=null;}
    activeNavigationId=args.NavigationId;navigationCompleted=false;navigating=true;
    int generation=navigationGeneration;ulong id=activeNavigationId;
-   if(IsHub(target))return;
+   if(IsHub(target)){routerPagePresented=false;return;}
    retryTarget=target;
-   if(!approved)ShowProgress("Your network workspace","Reading the latest router settings…");
+   if(!approved)ShowRouterNavigationProgress("Reading the latest router settings…");
    // The deadline includes document loading, not only LuCI's later asynchronous rendering.
    if(!redirect&&!cacheTest)_=WatchRouterView(generation,id);
    if(approved||redirect)return;
@@ -39,7 +74,7 @@ namespace FreeISP.Desk {
 
   async Task PrepareNavigationAssets(int generation,ulong id,Uri target){
    try{
-    var next=new RouterAssetCache(Path.Combine(data,"RouterAssets"));await next.Prepare(router);
+    var next=await NavigationAssets();
     if(CurrentNavigation(generation,id)&&SameRouter(target))assetCache=next;
    }catch(Exception ex){if(CurrentNavigation(generation,id)){navigating=false;ShowProgress("Connection unavailable","The interface could not open. "+ex.Message,true);}}
   }
@@ -61,7 +96,7 @@ namespace FreeISP.Desk {
    }catch(Exception ex){if(CurrentNavigation(generation,id)){navigating=false;ShowProgress("Interface unavailable","The page could not finish opening. "+ex.Message,true);}}
   }
 
-  void RevealPage(){navigating=false;loading.Visible=false;browser.Visible=true;connectionLabel.Text=IsHub(browser.Source)?"Local workspace":router?.Authority;}
+  void RevealPage(){navigating=false;loading.Visible=false;browser.Visible=true;routerPagePresented=!IsHub(browser.Source)&&SameRouter(browser.Source);connectionLabel.Text=IsHub(browser.Source)?"Local workspace":router?.Authority;}
 
   void ViewTimedOut(){
    navigating=false;
@@ -117,6 +152,29 @@ namespace FreeISP.Desk {
     using(var client=new HttpClient()){
      var stats=json.Deserialize<Dictionary<string,object>>(await client.GetStringAsync(new Uri(router,"/fixture/stats")));
      checks["repaired_asset_reused"]=Convert.ToInt32(stats["assets"])==2&&!bypassPageCache;
+    }
+    await browser.CoreWebView2.ExecuteScriptAsync("location.href="+json.Serialize(new Uri(router,"/cgi-bin/luci/admin/freeisp?pending=1").AbsoluteUri));
+    await WaitForCheck(()=>navigationCompleted&&navigating&&browser.Source.Query.Contains("pending=1"),"Sidebar navigation did not enter pending state.");
+    checks["sidebar_shell_stays_visible"]=!loading.Visible&&browser.Visible&&controls.Visible&&!retry.Visible;
+    checks["pending_settings_not_reported_ready"]=connectionLabel.Text=="Reading router settings…"&&navigating;
+    await WaitForCheck(()=>!navigating&&!loading.Visible,"Sidebar view did not complete.");
+    using(var client=new HttpClient()){
+     var stats=json.Deserialize<Dictionary<string,object>>(await client.GetStringAsync(new Uri(router,"/fixture/stats")));
+     checks["sidebar_reuses_validated_manifest"]=Convert.ToInt32(stats["manifests"])==2;
+    }
+    int beforeRefresh=navigationGeneration;
+    controls.Controls.OfType<System.Windows.Forms.Button>().Single(b=>b.Text=="Refresh").PerformClick();
+    await WaitForCheck(()=>navigationGeneration>beforeRefresh&&!preparingNavigation&&!navigating&&!loading.Visible,"Explicit refresh did not complete.");
+    using(var client=new HttpClient()){
+     var stats=json.Deserialize<Dictionary<string,object>>(await client.GetStringAsync(new Uri(router,"/fixture/stats")));
+     checks["explicit_refresh_revalidates_manifest"]=Convert.ToInt32(stats["manifests"])==3;
+    }
+    assetValidationExpires=DateTime.MinValue;
+    await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?expired=1"));
+    await WaitForCheck(()=>!navigating&&!loading.Visible,"Expired manifest revalidation did not complete.");
+    using(var client=new HttpClient()){
+     var stats=json.Deserialize<Dictionary<string,object>>(await client.GetStringAsync(new Uri(router,"/fixture/stats")));
+     checks["expired_manifest_revalidated"]=Convert.ToInt32(stats["manifests"])==4;
     }
     await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?stuck=1"));
     await WaitForCheck(()=>navigationCompleted&&navigating,"Superseded view did not start.");

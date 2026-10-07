@@ -68,8 +68,8 @@ namespace FreeISP.Desk {
    var brand=new PictureBox{Left=12,Top=7,Width=38,Height=38,SizeMode=PictureBoxSizeMode.Zoom,Image=Image.FromFile(Path.Combine(Program.Assets,"Hub","freeisp-logo.png"))};
    var title=new Label{Text="FreeISP Desk",ForeColor=Color.White,Font=new Font("Segoe UI",11,FontStyle.Bold),AutoSize=true,Left=59,Top=16};
    var home=ShellButton("Device Hub",185,100);home.Click+=(s,e)=>{if(browser.CoreWebView2!=null)ShowHub();};
-   var reload=ShellButton("Refresh",295,90);reload.Click+=async(s,e)=>{if(browser.CoreWebView2!=null){if(IsInterfaces(browser.Source)){CancelInterfaceRequests();await SendInterfaceContext();}else if(router!=null&&!IsHub(browser.Source))await NavigateRouter(browser.Source);else ShowHub();}};
-   var logout=ShellButton("Disconnect",395,110);logout.Click+=async(s,e)=>{if(browser.CoreWebView2==null)return;CancelInterfaceRequests();routerData?.Dispose();routerData=null;navigationGeneration++;router=null;assetCache=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
+   var reload=ShellButton("Refresh",295,90);reload.Click+=async(s,e)=>{if(browser.CoreWebView2!=null){if(IsInterfaces(browser.Source)){CancelInterfaceRequests();await SendInterfaceContext();}else if(router!=null&&!IsHub(browser.Source))await NavigateRouter(browser.Source,forceCheck:true);else ShowHub();}};
+   var logout=ShellButton("Disconnect",395,110);logout.Click+=async(s,e)=>{if(browser.CoreWebView2==null)return;CancelInterfaceRequests();routerData?.Dispose();routerData=null;ResetNavigationAssets();navigationGeneration++;router=null;assetCache=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
    var tools=ShellButton("Router Tools",515,110);tools.Click+=async(s,e)=>{if(router!=null&&browser.CoreWebView2!=null)await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/network/freeisp_tools"));};
    var interfaces=ShellButton("Interfaces",635,100);interfaces.Click+=(s,e)=>{if(browser.CoreWebView2!=null)ShowInterfaces();};
    controls.Controls.AddRange(new Control[]{brand,title,home,reload,logout,tools,interfaces,connectionLabel});
@@ -160,22 +160,22 @@ namespace FreeISP.Desk {
     string version=json.Deserialize<string>(await browser.CoreWebView2.ExecuteScriptAsync("window.assetVersion"));
     using(var client=new HttpClient()){
      var stats=json.Deserialize<Dictionary<string,object>>(await client.GetStringAsync(new Uri(router,"/fixture/stats")));
-     int[] expectedAssets={1,1,2,3,4};string[] expectedVersions={"A","A","B","C","C"};
-     if(version!=expectedVersions[cacheTestStage]||Convert.ToInt32(stats["assets"])!=expectedAssets[cacheTestStage]||Convert.ToInt32(stats["api"])!=cacheTestStage+1)throw new Exception("Cache/browser contract failed at stage "+cacheTestStage+": "+json.Serialize(stats)+" version="+version);
-     if(cacheTestStage==4){if(!Convert.ToBoolean(stats["postIntact"]))throw new Exception("Router form POST body was not preserved.");File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"cache-test.json"),json.Serialize(new{passed=true,firstNetworkLoad=true,sameRevisionLocalAsset=true,revisionRefresh=true,missingManifestBypass=true,apiNeverCached=true,formPostPreserved=true,stats=stats}));Close();return;}
+     int[] expectedAssets={1,1,2,3,4};int[] expectedManifests={1,1,2,3,4};string[] expectedVersions={"A","A","B","C","C"};
+     if(version!=expectedVersions[cacheTestStage]||Convert.ToInt32(stats["assets"])!=expectedAssets[cacheTestStage]||Convert.ToInt32(stats["api"])!=cacheTestStage+1||Convert.ToInt32(stats["manifests"])!=expectedManifests[cacheTestStage])throw new Exception("Cache/browser contract failed at stage "+cacheTestStage+": "+json.Serialize(stats)+" version="+version);
+     if(cacheTestStage==4){if(!Convert.ToBoolean(stats["postIntact"]))throw new Exception("Router form POST body was not preserved.");File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"cache-test.json"),json.Serialize(new{passed=true,firstNetworkLoad=true,sameRevisionLocalAsset=true,sidebarManifestReused=true,explicitRefreshRevalidates=true,revisionRefresh=true,missingManifestBypass=true,apiNeverCached=true,formPostPreserved=true,stats=stats}));Close();return;}
      cacheTestStage++;
      if(cacheTestStage==2||cacheTestStage==3)await client.GetStringAsync(new Uri(router,"/fixture/revision?stage="+cacheTestStage));
     }
-    if(cacheTestStage==4)await browser.CoreWebView2.ExecuteScriptAsync("var form=document.createElement('form');form.method='POST';form.action='/cgi-bin/luci/admin/freeisp';var input=document.createElement('input');input.name='probe';input.value='preserved';form.appendChild(input);document.body.appendChild(form);form.submit();");else if(cacheTestStage==1)await browser.CoreWebView2.ExecuteScriptAsync("location.href="+json.Serialize(new Uri(router,"/cgi-bin/luci/admin/freeisp?page=1").AbsoluteUri));else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?page="+cacheTestStage));
+    if(cacheTestStage==4)await browser.CoreWebView2.ExecuteScriptAsync("var form=document.createElement('form');form.method='POST';form.action='/cgi-bin/luci/admin/freeisp';var input=document.createElement('input');input.name='probe';input.value='preserved';form.appendChild(input);document.body.appendChild(form);form.submit();");else if(cacheTestStage==1)await browser.CoreWebView2.ExecuteScriptAsync("location.href="+json.Serialize(new Uri(router,"/cgi-bin/luci/admin/freeisp?page=1").AbsoluteUri));else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?page="+cacheTestStage),forceCheck:true);
    }catch(Exception ex){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"cache-test.json"),json.Serialize(new{passed=false,error=ex.ToString()}));Close();}
   }
   bool SameRouter(Uri u){return router!=null&&u.Scheme==router.Scheme&&u.Authority==router.Authority;}
   Button ShellButton(string text,int left,int width){return new Button{Text=text,Left=left,Top=10,Width=width,Height=32,FlatStyle=FlatStyle.Flat,ForeColor=Color.White,BackColor=Color.FromArgb(24,62,80),Font=new Font("Segoe UI",9)};}
   void ShowProgress(string title,string detail,bool failed=false){progressTitle.Text=title;progressDetail.Text=detail;retry.Visible=returnHub.Visible=failed&&browser.CoreWebView2!=null;loading.Visible=true;loading.BringToFront();controls.BringToFront();browser.Visible=true;}
-  async Task NavigateRouter(Uri target,bool bypassCache=false){
-   if(closing||target==null||!SameRouter(target))return;int generation=++navigationGeneration;preparingNavigation=true;navigating=false;assetCache=null;bypassPageCache=bypassCache;retryTarget=target;browser.CoreWebView2.Stop();ShowProgress("Your network workspace",bypassCache?"Fetching fresh interface files. Your router login is kept.":"Connecting to "+router.Authority+". Checking the latest interface…");
+  async Task NavigateRouter(Uri target,bool bypassCache=false,bool forceCheck=false){
+   if(closing||target==null||!SameRouter(target))return;int generation=++navigationGeneration;preparingNavigation=true;navigating=false;assetCache=null;bypassPageCache=bypassCache;retryTarget=target;browser.CoreWebView2.Stop();ShowRouterNavigationProgress(bypassCache?"Fetching fresh interface files. Your router login is kept.":"Connecting to "+router.Authority+". Checking the latest interface…",bypassCache);
    try{
-    var next=new RouterAssetCache(Path.Combine(data,"RouterAssets"));await next.Prepare(router);
+    var validation=NavigationAssets(forceCheck||bypassCache);assetPreparation=validation;var next=await validation;
     if(closing||generation!=navigationGeneration||!SameRouter(target))return;
     // Clear only when changing routers or interface releases, not on every visit.
     string cacheKey=router.AbsoluteUri+"|"+next.Revision;
@@ -184,7 +184,7 @@ namespace FreeISP.Desk {
     assetCache=next;approvedNavigation=target.AbsoluteUri;preparingNavigation=false;browser.CoreWebView2.Navigate(target.AbsoluteUri);
    }catch(Exception ex){if(!closing&&generation==navigationGeneration){preparingNavigation=false;ShowProgress("Connection unavailable","Your local workspace is ready. "+ex.Message,true);}}
   }
-  void ShowHub(){if(closing)return;CancelInterfaceRequests();navigationGeneration++;preparingNavigation=false;navigating=false;approvedNavigation=null;assetCache=null;bypassPageCache=false;busy=false;browser.CoreWebView2.Stop();ShowProgress("Your local workspace","Opening saved routers and connection tools…");browser.CoreWebView2.Navigate(Hub);}
+  void ShowHub(){if(closing)return;CancelInterfaceRequests();routerPagePresented=false;navigationGeneration++;preparingNavigation=false;navigating=false;approvedNavigation=null;assetCache=null;bypassPageCache=false;busy=false;browser.CoreWebView2.Stop();ShowProgress("Your local workspace","Opening saved routers and connection tools…");browser.CoreWebView2.Navigate(Hub);}
   Task Send(object message){if(IsHub(browser.Source))browser.CoreWebView2.PostWebMessageAsJson(json.Serialize(message));return Task.CompletedTask;}
   object[] PublicRouters(){return ReadRouters().Select(r=>(object)new{name=r.name,address=r.address,username=r.username,source=r.source,hasPassword=!string.IsNullOrEmpty(r.protectedPassword)}).ToArray();}
   List<RouterEntry> ReadRouters(){try{return json.Deserialize<List<RouterEntry>>(File.ReadAllText(Path.Combine(data,"routers.json")))??new List<RouterEntry>();}catch{return new List<RouterEntry>();}}
@@ -217,7 +217,7 @@ namespace FreeISP.Desk {
      list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved",protectedPassword=LocalPassword.Seal(password,address.AbsoluteUri,username)});
      File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));
     }
-    password=null;routerData?.Dispose();routerData=new RouterDataClient(address,cookie);router=address;ShowInterfaces();
+    password=null;routerData?.Dispose();routerData=new RouterDataClient(address,cookie);ResetNavigationAssets();router=address;ShowInterfaces();
    }catch(Exception ex){await Send(new{type="status",message=ex is TaskCanceledException?"Connection timed out. Check the router or SSH tunnel.":ex is HttpRequestException?"Connection failed. Check the address, tunnel and HTTPS certificate.":ex.Message,busy=false});}finally{busy=false;}
   }
   public static bool Private(IPAddress ip){var b=ip.GetAddressBytes();return b.Length==4&&(b[0]==10||(b[0]==192&&b[1]==168)||(b[0]==172&&b[1]>=16&&b[1]<=31));}

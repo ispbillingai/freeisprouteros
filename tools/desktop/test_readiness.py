@@ -8,7 +8,7 @@ import subprocess
 import threading
 import time
 
-state = dict(repaired=False, assets=0, authenticatedHtml=0)
+state = dict(repaired=False, assets=0, authenticatedHtml=0, manifests=0)
 
 
 class Fixture(http.server.BaseHTTPRequestHandler):
@@ -18,13 +18,14 @@ class Fixture(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         kind = 'application/json'
         if self.path.startswith('/luci-static/freeisp/release.json'):
+            state['manifests'] += 1
             value = json.dumps({'revision': 'd' * 64})
         elif self.path == '/luci-static/freeisp/readiness.js':
             state['assets'] += 1
             kind = 'application/javascript'
             value = "window.fixtureLoaded=true;"
             if state['repaired']:
-                value += "if(!location.search.includes('stuck=1'))requestAnimationFrame(()=>document.querySelector('#view').innerHTML='<h2>Router ready</h2>');"
+                value += "if(!location.search.includes('stuck=1'))setTimeout(()=>requestAnimationFrame(()=>document.querySelector('#view').innerHTML='<h2>Router ready</h2>'),location.search.includes('pending=1')?600:0);"
         elif self.path.startswith('/cgi-bin/luci/admin/freeisp'):
             state['authenticatedHtml'] += int('desk_fixture=kept' in self.headers.get('Cookie', ''))
             if 'slow=1' in self.path:
