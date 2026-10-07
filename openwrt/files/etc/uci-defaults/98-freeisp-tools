@@ -1,0 +1,4 @@
+#!/bin/sh
+chmod 600 /etc/config/freeisp_tools
+/etc/init.d/freeisp-tools enable
+exit 0

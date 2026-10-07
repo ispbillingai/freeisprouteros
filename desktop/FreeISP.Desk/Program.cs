@@ -45,6 +45,7 @@ namespace FreeISP.Desk {
   readonly Panel controls=new Panel{Dock=DockStyle.Top,Height=40,BackColor=Color.FromArgb(11,36,53),Visible=false};
   Uri router; bool busy; bool scanning;
   readonly bool selfTest=Environment.GetCommandLineArgs().Contains("--self-test");
+  readonly bool routerSelfTest=Environment.GetCommandLineArgs().Contains("--tools-router-test");
   public DeskWindow(){
    Text="FreeISP Desk";Size=new Size(1320,900);MinimumSize=new Size(960,650);StartPosition=FormStartPosition.CenterScreen;
    Icon=System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -52,12 +53,13 @@ namespace FreeISP.Desk {
    var home=new Button{Text="← Device Hub",Left=12,Top=6,Width=120,Height=28};home.Click+=(s,e)=>ShowHub();
    var reload=new Button{Text="Reload",Left=140,Top=6,Width=80,Height=28};reload.Click+=(s,e)=>browser.Reload();
    var logout=new Button{Text="Disconnect",Left=228,Top=6,Width=95,Height=28};logout.Click+=async(s,e)=>{router=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
-   controls.Controls.AddRange(new Control[]{home,reload,logout});Controls.Add(browser);Controls.Add(controls);
+   var tools=new Button{Text="Router Tools",Left=331,Top=6,Width=110,Height=28};tools.Click+=(s,e)=>{if(router!=null)browser.CoreWebView2.Navigate(new Uri(router,"/cgi-bin/luci/admin/network/freeisp_tools").AbsoluteUri);};
+   controls.Controls.AddRange(new Control[]{home,reload,logout,tools});Controls.Add(browser);Controls.Add(controls);
    Shown+=async(s,e)=>{try{
     Directory.CreateDirectory(data);
     await browser.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(null,Path.Combine(data,"Browser")));
     var core=browser.CoreWebView2;
-    if(selfTest){core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||!IsHub(u))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
+    if(selfTest){core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||(!IsHub(u)&&!(routerSelfTest&&u.Scheme=="http"&&u.Host=="127.0.0.1"&&u.Port==18940)))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
     string hubFolder=Path.Combine(Program.Assets,"Hub");
     foreach(string file in new[]{"index.html","hub.css","hub.js"})
      if(!File.Exists(Path.Combine(hubFolder,file)))throw new FileNotFoundException("A bundled app file is missing. Download FreeISP Desk again. Missing: Hub/"+file);
@@ -67,11 +69,47 @@ namespace FreeISP.Desk {
     core.NavigationStarting+=(sender,args)=>{Uri target;if(!Uri.TryCreate(args.Uri,UriKind.Absolute,out target)||(!IsHub(target)&&!SameRouter(target)))args.Cancel=true;};
     core.NewWindowRequested+=(sender,args)=>args.Handled=true;
     core.NavigationCompleted+=async(sender,args)=>{
-     if(IsHub(browser.Source)){controls.Visible=false;if(selfTest){await Task.Delay(400);string result=await core.ExecuteScriptAsync("JSON.stringify({passed:!!document.querySelector('#connection') && !!document.querySelector('#scan') && getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)',url:location.href,bridge:!!window.chrome.webview,logo:document.querySelector('.original-logo').naturalWidth>0})");File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),json.Deserialize<string>(result));using(var image=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.png")))await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image);Close();return;}if(!args.IsSuccess){MessageBox.Show("The bundled Device Hub could not load: "+args.WebErrorStatus+". Reopen the app or download it again. No internet or router connection is needed for this screen.",Text);return;}await Send(new{type="routers",routers=ReadRouters()});}
+     if(IsHub(browser.Source)){controls.Visible=false;if(selfTest){await Task.Delay(400);await RunSelfTest(args.IsSuccess);return;}if(!args.IsSuccess){MessageBox.Show("The bundled Device Hub could not load: "+args.WebErrorStatus+". Reopen the app or download it again. No internet or router connection is needed for this screen.",Text);return;}await Send(new{type="routers",routers=ReadRouters()});}
      else if(!args.IsSuccess){ShowHub();MessageBox.Show("Could not reach the router. Check its address and your SSH tunnel. Certificate checks remain enabled.",Text);}
     };
     ShowHub();
-   }catch(Exception ex){MessageBox.Show("FreeISP Desk could not start. Install Microsoft Edge WebView2 Runtime if it is missing.\n\n"+ex.Message,Text,MessageBoxButtons.OK,MessageBoxIcon.Error);}};
+   }catch(Exception ex){if(selfTest){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test-error.txt"),ex.ToString());Environment.Exit(1);}MessageBox.Show("FreeISP Desk could not start. Install Microsoft Edge WebView2 Runtime if it is missing.\n\n"+ex.Message,Text,MessageBoxButtons.OK,MessageBoxIcon.Error);}};
+  }
+  async Task RunSelfTest(bool navigationSucceeded){
+   try{
+    var checks=new Dictionary<string,bool>();checks["offline_navigation"]=navigationSucceeded;
+    string rendered="false";
+    for(int attempt=0;attempt<20&&rendered!="true";attempt++){rendered=await browser.CoreWebView2.ExecuteScriptAsync("!!document.querySelector('#connection') && !!document.querySelector('#scan') && !!window.chrome.webview && document.querySelector('.original-logo').naturalWidth>0 && getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)' && !document.querySelector('#connect').disabled");if(rendered!="true")await Task.Delay(100);}
+    checks["offline_hub_and_logo"]=rendered=="true";
+    if(File.Exists(Path.Combine(data,"self-test.marker"))){
+     checks["saved_router_survives_restart"]=ReadRouters().Any(r=>r.name=="Offline test router"&&r.address=="https://192.0.2.1/");
+     checks["theme_survives_restart"]=await browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.dataset.theme === 'night'")=="true";
+    }
+    checks["address_valid"]=Address("192.168.1.1").AbsoluteUri=="https://192.168.1.1/"&&Address("http://127.0.0.1:8874").Port==8874;
+    bool rejected=true;foreach(var input in new[]{"ftp://router","https://user:password@router","https://freeisp-desk.local",""}){try{Address(input);rejected=false;}catch{}}
+    checks["invalid_addresses_rejected"]=rejected;
+    foreach(var check in await RouterConnection.SelfTest())checks["connection_"+check.Key]=check.Value;
+    var list=new List<RouterEntry>{new RouterEntry{name="Offline test router",address="https://192.0.2.1/",username="root",source="Saved"}};
+    File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));checks["saved_router_round_trip"]=ReadRouters().Single().address==list[0].address;
+    await Send(new{type="routers",routers=ReadRouters()});await Task.Delay(100);
+    checks["saved_router_rendered"]=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#routers').textContent.includes('Offline test router')")=="true";
+    checks["theme_saved"]=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#night').click();localStorage.getItem('freeisp-desk-theme') === 'night' && document.documentElement.dataset.theme === 'night'")=="true";
+    if(routerSelfTest){
+     router=Address("http://127.0.0.1:18940");
+     string value=await RouterConnection.Authenticate(router,"root","FreeISP-Tools-Local-Test-Only");checks["real_router_login"]=!string.IsNullOrEmpty(value);
+     var cookie=browser.CoreWebView2.CookieManager.CreateCookie("sysauth_http",value,router.Host,"/cgi-bin/luci/");cookie.IsHttpOnly=true;browser.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
+     controls.Visible=true;controls.Controls.OfType<Button>().Single(b=>b.Text=="Router Tools").PerformClick();
+     bool loaded=false;for(int attempt=0;attempt<100&&!loaded;attempt++){await Task.Delay(100);loaded=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelectorAll('.fi-tool-list button').length===20")=="true";}
+     checks["real_router_tools_button"]=loaded;
+     if(loaded){
+      await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-tool=ping]').click();document.querySelector('.fi-tool-fields input').value='127.0.0.1';document.querySelector('.fi-tool-actions button').click()");
+      bool replied=false;for(int attempt=0;attempt<100&&!replied;attempt++){await Task.Delay(100);replied=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.fi-tool-output').textContent.includes('0% packet loss')")=="true";}checks["real_router_ping"]=replied;
+     }
+    }
+    string resultName=routerSelfTest?"self-test-router":"self-test";
+    using(var image=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,resultName+".png")))await browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image);
+    bool passed=checks.Values.All(v=>v);File.WriteAllText(Path.Combine(data,"self-test.marker"),"test profile");File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,resultName+".json"),json.Serialize(new{passed,checks,url=browser.Source.AbsoluteUri}));Environment.ExitCode=passed?0:1;Close();
+   }catch(Exception ex){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test-error.txt"),ex.ToString());Environment.Exit(1);}
   }
   bool IsHub(Uri u){return u!=null&&u.Scheme=="https"&&u.Host=="freeisp-desk.local"&&u.IsDefaultPort;}
   bool SameRouter(Uri u){return router!=null&&u.Scheme==router.Scheme&&u.Authority==router.Authority;}
@@ -91,21 +129,11 @@ namespace FreeISP.Desk {
     if(string.IsNullOrWhiteSpace(username)||string.IsNullOrEmpty(password))throw new Exception("Enter your router username and password.");
     busy=true;await Send(new{type="status",message="Signing in…",busy=true});
     // Authenticate without following redirects so credentials can only reach the chosen origin.
-    using(var handler=new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false})
-    using(var client=new HttpClient(handler){Timeout=TimeSpan.FromSeconds(20)}){
-     var url=new Uri(address,"/cgi-bin/luci/admin/freeisp");
-     using(var body=new FormUrlEncodedContent(new[]{new KeyValuePair<string,string>("luci_username",username),new KeyValuePair<string,string>("luci_password",password)}))
-     using(var response=await client.PostAsync(url,body)){
-      password=null;IEnumerable<string> headers;
-      if((int)response.StatusCode!=302||!response.Headers.TryGetValues("Set-Cookie",out headers))throw new Exception("Sign-in failed. Check the router address, username and password.");
-      string cookieName=address.Scheme=="https"?"sysauth_https":"sysauth_http";
-      string cookie=headers.Select(h=>h.Split(';')[0]).FirstOrDefault(h=>h.StartsWith(cookieName+"=",StringComparison.Ordinal));
-      if(cookie==null)throw new Exception("The router did not return a supported login session.");
-      var session=browser.CoreWebView2.CookieManager.CreateCookie(cookieName,cookie.Substring(cookieName.Length+1),address.Host,"/cgi-bin/luci/");
+    string cookie=await RouterConnection.Authenticate(address,username,password);password=null;
+    string cookieName=address.Scheme=="https"?"sysauth_https":"sysauth_http";
+    var session=browser.CoreWebView2.CookieManager.CreateCookie(cookieName,cookie,address.Host,"/cgi-bin/luci/");
       session.IsHttpOnly=true;session.IsSecure=address.Scheme=="https";session.SameSite=CoreWebView2CookieSameSiteKind.Strict;
       browser.CoreWebView2.CookieManager.AddOrUpdateCookie(session);
-     }
-    }
     if(m.ContainsKey("remember")&&Convert.ToBoolean(m["remember"])){
      var list=ReadRouters();list.RemoveAll(r=>r.address==address.AbsoluteUri);
      list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved"});

@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues / SQM', 'network/sqm'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],
         ['System', 'system/system'], ['Files / Backups', 'system/flash'], ['Log', 'status/syslog'],
-        ['Tools', 'network/diagnostics'], ['Commands', 'system/commands'], ['Software', 'system/package-manager'], ['Logout', 'logout']
+        ['Tools', 'network/freeisp_tools'], ['Commands', 'system/commands'], ['Software', 'system/package-manager'], ['Logout', 'logout']
     ];
     entries.forEach(function(item) {
         var element = document.createElement(item[1] ? 'a' : 'span');

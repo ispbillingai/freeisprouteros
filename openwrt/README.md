@@ -25,6 +25,11 @@ SQM interface shaping; per-host traffic accounting (nlbwmon); diagnostics;
 system/kernel logs; package management; backup/restore/firmware tools; authenticated commands.
 Installed does not mean every protocol has been integration-tested or configured.
 
+The [FreeISP Tools workspace](TOOLS.md) adds authenticated diagnostic actions,
+packet sampling, throughput tests, persistent Netwatch and iperf3 service settings,
+SMTP and Wake-on-LAN. Its feature matrix documents the supported equivalents,
+actual test evidence and remaining gaps in RouterOS parity.
+
 PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
 AP controller and the dashboard compatibility contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif

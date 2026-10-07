@@ -1,0 +1,199 @@
+#!/usr/bin/ucode
+// Authenticated rpcd executable. No user supplied shell programs or filters.
+import * as fs from 'fs';
+import { cursor } from 'uci';
+
+const config = 'freeisp_tools';
+function fail(message) { die(message); }
+function quote(value) { return "'" + replace('' + value, /'/g, "'\\''") + "'"; }
+function run(args, seconds) {
+ let command = '/usr/bin/timeout -k 1 ' + (seconds || 8) + ' ' + join(' ', map(args, quote));
+ let stream = fs.popen(command + ' 2>&1', 'r');
+ if (!stream) return {ok:false, code:127, output:'Could not start the tool.'};
+ let output = '', line;
+ while ((line = stream.read('line')) != null) if (length(output) < 32768) output += substr(line, 0, 32768-length(output));
+ let code = stream.close();
+ return {ok:code == 0, code:code, output:output, limited:code == 124 || code == 137 || code == -9};
+}
+function installed(name) { return !!fs.stat('/usr/bin/' + name) || !!fs.stat('/usr/sbin/' + name) || !!fs.stat('/bin/' + name) || !!fs.stat('/sbin/' + name); }
+function number(value, low, high) {
+ if (!match('' + value, /^[0-9]+$/) || +value < low || +value > high) fail('Enter a whole number from ' + low + ' to ' + high + '.');
+ return +value;
+}
+function host(value) {
+ if (type(value) != 'string' || length(value)>253 || !match(value, /^[a-zA-Z0-9][a-zA-Z0-9.:-]*$/)) fail('Enter an IP address or hostname without spaces or command options.');
+ return value;
+}
+function device(value) {
+ if (type(value) != 'string' || !match(value, /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,14}$/) || !fs.stat('/sys/class/net/'+value)) fail('Select an existing network device.');
+ return value;
+}
+function localAddress(value) {
+ host(value);
+ let r = run(['/sbin/ip', '-o', '-4', 'addr', 'show']);
+ if (!r.ok || index(r.output, 'inet '+value+'/') < 0) fail('Bind address must be an IPv4 address currently assigned to this router.');
+ return value;
+}
+function email(value) {
+ if (type(value) != 'string' || length(value)>254 || !match(value,/^[a-zA-Z0-9_.+%-]+@[a-zA-Z0-9.-]+$/)) fail('Enter a valid email address.');
+ return value;
+}
+function text(value, maximum) {
+ if (type(value) != 'string' || length(value)>maximum) fail('Text is missing or too long.');
+ for (let i=0;i<length(value);i++) { let code=ord(substr(value,i,1)); if(code<32 && code!=9 && code!=10 && code!=13) fail('Text contains control characters.'); }
+ return value;
+}
+const catalog = [
+ ['btest','BTest Server','iperf3','OpenWrt iperf3 server; requires iperf3 clients, not MikroTik BTest.'],
+ ['bandwidth','Bandwidth Test','iperf3','TCP throughput to an iperf3 server.'],
+ ['email','Email','msmtp','Send through a configured TLS SMTP relay. Accepted by the relay does not prove delivery.'],
+ ['flood','Flood Ping','ping','Bounded rapid ICMP test: 20 packets, at most 8 seconds.'],
+ ['graph','Graphing','ip','Live interface byte counters and sampled traffic graph.'],
+ ['scan','IP Scan','fping','Discover responding IPv4 hosts, at most 16 addresses.'],
+ ['mac','MAC Server',null,'MikroTik MAC Telnet / MAC WinBox server is not implemented on this OpenWrt platform.'],
+ ['netwatch','Netwatch','ping','Persistent reachability checks, transition log and timestamp. No arbitrary scripts.'],
+ ['sniffer','Packet Sniffer','tcpdump','Bounded packet headers: 50 packets or 5 seconds, no payload capture.'],
+ ['ping','Ping','ping','Five ICMP probes with a deadline.'],
+ ['speed','Ping Speed','ping','Large ICMP probes report latency and loss; this is not a bandwidth measurement.'],
+ ['profile','Profile','top','Live process CPU and memory snapshot, not RouterOS subsystem profiling.'],
+ ['romon','RoMON',null,'MikroTik RoMON overlay protocol is not implemented. Use IP management or a VPN.'],
+ ['sms','SMS','mmcli','Send through an attached ModemManager modem; requires modem, SIM and service.'],
+ ['telnet','Telnet','nc','TCP connection/banner check only; an interactive Telnet terminal is not implemented.'],
+ ['torch','Torch','tcpdump','Sample traffic headers on one device; not full RouterOS flow aggregation.'],
+ ['traceroute','Traceroute','traceroute','Bounded route trace (8 hops, one probe per hop).'],
+ ['generator','Traffic Generator','iperf3','Bounded UDP traffic to an iperf3 server, at most 10 Mbit/s for 5 seconds.'],
+ ['monitor','Traffic Monitor','ip','Live interface counters with receive/transmit rates.'],
+ ['wol','WoL','etherwake','Send a Wake-on-LAN magic packet through a selected device.']
+];
+function settings() {
+ let c=cursor(), out={};
+ for (let name in ['btest','netwatch','email']) {
+  let section = c.get_all(config,name) || {};
+  delete section['.type']; delete section['.name']; delete section['.anonymous']; delete section['.index'];
+  if (name=='email') { section.password_saved = !!section.password; delete section.password; }
+  out[name]=section;
+ }
+ return out;
+}
+function status() {
+ let tools=map(catalog, function(t) {
+  let ready=!!t[2] && installed(t[2]) && !!fs.stat('/usr/bin/timeout'), reason=null;
+  if(t[0]=='sms' && ready) { let modems=run(['mmcli','-L'],3);ready=modems.ok && index(modems.output,'/Modem/')>=0;if(!ready)reason='No ModemManager modem is available.'; }
+  return {id:t[0],name:t[1],available:ready,description:t[3],dependency:t[2],reason:reason};
+ });
+ let interfaces=fs.lsdir('/sys/class/net') || [];
+ let watch=null;
+ try { watch=json(fs.readfile('/var/run/freeisp-netwatch.json') || 'null'); } catch(e) {}
+ let service=run(['/bin/ubus','call','service','list','{"name":"freeisp-tools"}']);
+ let processes={}; try { processes=json(service.output); } catch(e) {}
+ return {ok:true,tools:tools,interfaces:interfaces,settings:settings(),watch:watch,services:processes,services_available:service.ok,timestamp:time()};
+}
+function save(p) {
+ let c=cursor(), values={}, section=p.section;
+ if (section=='btest') {
+  let enabled=number(p.enabled,0,1);
+  values={enabled:''+enabled,address:enabled?localAddress(p.address):host(p.address),port:''+number(p.port,1024,65535)};
+ } else if(section=='netwatch') {
+  values={enabled:''+number(p.enabled,0,1),host:host(p.host),interval:''+number(p.interval,10,3600)};
+ } else if(section=='email') {
+  values={host:host(p.host),port:''+number(p.port,1,65535),from:email(p.from),username:text(p.username,128)};
+  if (p.password) values.password=text(p.password,256);
+  if (p.clear_password=='1') values.password='';
+  if(match(values.username,/[\r\n]/) || match(values.password || '',/[\r\n]/)) fail('SMTP credentials must be single-line.');
+ } else fail('Unknown settings section.');
+ for (let key,value in values) if (!c.set(config,section,key,value)) fail('Could not update settings.');
+ if (!c.commit(config)) fail('Could not persist settings.');
+ fs.chmod('/etc/config/'+config,0600);
+ let restart=section=='email'?{ok:true}:run(['/etc/init.d/freeisp-tools','restart']);
+ if(!restart.ok) return {ok:false,output:'Settings saved, but service restart failed: '+restart.output};
+ return {ok:true,output:'Settings saved. Check live service status below.',settings:settings()};
+}
+function execute(p) {
+ let tool=p.tool;
+ let entry=filter(catalog,t=>t[0]==tool)[0];
+ if(!entry) fail('Unknown tool.');
+ if(!entry[2]) fail(entry[3]);
+ if(!installed(entry[2]) || !fs.stat('/usr/bin/timeout')) fail('Required package is not installed: '+entry[2]+' / coreutils-timeout.');
+ let args, target, iface;
+ switch(tool) {
+ case 'ping': case 'flood': case 'speed':
+  target=host(p.host); args=['ping','-n','-c',tool=='flood'?'20':'5','-W','1','-w','6'];
+  if(tool=='flood') push(args,'-i','0.1');
+  if(tool=='speed') push(args,'-s','1400');
+  push(args,target); break;
+ case 'traceroute': args=['traceroute','-n','-m','8','-q','1','-w','1',host(p.host)]; break;
+ case 'bandwidth': case 'generator':
+  args=['iperf3','-c',host(p.host),'-p',''+number(p.port,1,65535),'-t','5','--connect-timeout','1500','-J'];
+  if(tool=='generator') push(args,'-u','-b',''+number(p.rate,1,10)+'M');
+  else if(p.reverse=='1') push(args,'-R');
+  break;
+ case 'scan':
+  target=p.host;
+  if(type(target)!='string' || !match(target,/^([0-9]{1,3}\.){3}[0-9]{1,3}\/(28|29|30|31|32)$/)) fail('Use an IPv4 subnet from /28 through /32 (at most 16 addresses).');
+  for(let octet in split(split(target,'/')[0],'.')) number(octet,0,255);
+  args=['fping','-a','-r','0','-t','200','-g',target]; break;
+ case 'sniffer': case 'torch':
+  args=['tcpdump','-nn','-l','-p','-s','96','-c','50','-i',device(p.interface)];
+  if(p.host) push(args,'host',host(p.host));
+  let capture=run(args,5);
+  if(capture.limited) { capture.ok=true; capture.output+='\nCapture window ended (5 seconds).'; }
+  return capture;
+ case 'graph': case 'monitor': return {ok:true,timestamp:time(),output:fs.readfile('/proc/net/dev')};
+ case 'profile': args=['top','-b','-n','1']; break;
+ case 'wol':
+  if(type(p.mac)!='string'||!match(p.mac,/^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$/)) fail('Enter a MAC address such as 00:11:22:33:44:55.');
+  args=['etherwake','-i',device(p.interface),p.mac]; break;
+ case 'telnet': args=['nc','-w','3',host(p.host),''+number(p.port,1,65535)]; break;
+ case 'sms':
+  let modem=''+number(p.modem,0,99);
+  if(type(p.phone)!='string'||!match(p.phone,/^\+?[0-9]{5,20}$/)) fail('Enter an international phone number.');
+  let message=text(p.message,160);
+  if(!length(message)||index(message,"'")>=0 || index(message,'\\')>=0) fail('SMS text must be 1–160 characters without quotes or backslashes.');
+  let created=run(['mmcli','-m',modem,"--messaging-create-sms=text='"+message+"',number='"+p.phone+"'"]);
+  if(!created.ok) return created;
+  let id=match(created.output,/\/org\/freedesktop\/ModemManager1\/SMS\/([0-9]+)/);
+  if(!id) fail('Modem did not return an SMS identifier.');
+  return run(['mmcli','-s',id[1],'--send']);
+ case 'email':
+  let c=cursor(), s=c.get_all(config,'email') || {};
+  host(s.host); number(s.port,1,65535); email(s.from); email(p.to);
+  let subject=text(p.subject,120); if(match(subject,/[\r\n]/)) fail('Subject must be one line.');
+  let body=text(p.message,4096);
+  // Temporary private files avoid putting credentials in process arguments.
+  let dir='/tmp/freeisp-mail-'+split(fs.readfile('/proc/self/stat'),' ')[0], result;
+  if(!fs.mkdir(dir,0700)) fail('Could not create private mail spool.');
+  try {
+   let cfg='defaults\ntls on\ntls_starttls on\ntls_trust_file /etc/ssl/certs/ca-certificates.crt\naccount default\nhost '+s.host+'\nport '+s.port+'\nfrom '+s.from+'\n';
+   if(s.username) {
+    let user=replace(replace(s.username,/\\/g,'\\\\'),/"/g,'\\"');
+    let password=replace(replace(s.password || '',/\\/g,'\\\\'),/"/g,'\\"');
+    cfg+='auth on\nuser "'+user+'"\npassword "'+password+'"\n';
+   }
+   fs.writefile(dir+'/config',cfg); fs.chmod(dir+'/config',0600);
+   fs.writefile(dir+'/message','From: '+s.from+'\nTo: '+p.to+'\nSubject: '+subject+'\n\n'+body+'\n');
+   let stream=fs.popen('/usr/bin/timeout -s KILL 8 msmtp --file='+quote(dir+'/config')+' -- '+quote(p.to)+' < '+quote(dir+'/message')+' 2>&1','r');
+   let output=stream.read('all'), code=stream.close();
+   result={ok:code==0,code:code,output:code==0?'SMTP relay accepted the message.':output};
+  } catch(e) { result={ok:false,output:e.message || ''+e}; }
+  fs.unlink(dir+'/config'); fs.unlink(dir+'/message'); fs.rmdir(dir);
+  return result;
+ case 'netwatch': return {ok:true,output:fs.readfile('/var/run/freeisp-netwatch.json') || 'No result yet. Enable Netwatch and wait for its first probe.'};
+ case 'btest': return status();
+ default: fail('Unknown action.');
+ }
+ let result=run(args);
+ if(tool=='scan' && result.code==1) {result.ok=true;result.output+='\nScan finished; some hosts did not reply.';}
+ if(tool=='wol' && result.ok) result.output='Magic packet sent. Device wake state is not verified.';
+ return result;
+}
+
+if(ARGV[0]=='list') {
+ print({status:{},run:{tool:'',host:'',port:'',interface:'',mac:'',reverse:'',rate:'',modem:'',phone:'',message:'',to:'',subject:''},save:{section:'',enabled:'',address:'',port:'',host:'',interval:'',from:'',username:'',password:'',clear_password:''}});
+} else if(ARGV[0]=='call') {
+ try {
+  let request=json(fs.readfile('/dev/stdin') || '{}');
+  if(type(request)!='object') fail('Invalid request.');
+  let result=ARGV[1]=='status'?status():ARGV[1]=='run'?execute(request):ARGV[1]=='save'?save(request):{ok:false,output:'Unknown RPC method.'};
+  print(result);
+ } catch(e) { print({ok:false,output:e.message || ''+e}); }
+}

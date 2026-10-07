@@ -1,5 +1,9 @@
 # FreeISP Desk for Windows — Device Hub
 
+Version 0.2.3 adds a Router Tools button after connection, rejects empty login
+sessions and expands the isolated offline/connection self-test. Router tool
+actions are served by OpenWrt; see the [feature and test matrix](../openwrt/TOOLS.md).
+
 Version 0.2.1 replaces the blank opening screen with the FreeISP Device Hub,
 including Day/Night themes, direct router login, saved router cards and local
 IPv4 gateway discovery. The router still serves the management pages.
@@ -34,7 +38,7 @@ untrusted hints; HTTPS certificate checks remain enabled when connecting.
 ## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.1
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.3
 
 Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
 Hub and are also usable as a static design preview; login and discovery require
@@ -49,3 +53,8 @@ The original logo is copied unchanged from the user-provided F:/Logos/logo.png.
 Run the built executable with --self-test to verify embedded extraction and hub
 rendering with external WebView requests blocked. Test files are written beside
 the executable; no router credentials or live connection are used by this check.
+The connection checks use a local disposable HTTP fixture. Run twice to also
+verify saved-router and theme persistence across separate process launches.
+With the disposable Tools VM running on loopback port 18940, the optional
+`--self-test --tools-router-test` check exercises real router login, the native
+Router Tools button and ping in the embedded page. It does not use a production router.

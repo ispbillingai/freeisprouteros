@@ -9,3 +9,10 @@ luci-proto-wireguard
 ip-full
 tcpdump-mini
 curl
+coreutils-timeout
+iputils-ping
+iperf3
+fping
+etherwake
+msmtp
+ca-bundle

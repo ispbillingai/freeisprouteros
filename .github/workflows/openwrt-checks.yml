@@ -18,6 +18,12 @@ jobs:
           node --check openwrt/files/www/luci-static/resources/view/freeisp/overview.js
           node --check openwrt/files/www/luci-static/resources/view/freeisp/quickset.js
           node tools/openwrt/test-quickset.cjs
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/tools.js
+          node --check tools/openwrt/test-tools-ui.cjs
+          sh -n openwrt/files/etc/init.d/freeisp-tools
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-tools.json > /dev/null
+          python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-tools.json > /dev/null
+          python3 -m py_compile tools/openwrt/test-tools-vm.py tools/openwrt/tools_vm_client.py tools/openwrt/tools-smtp-fixture.py tools/openwrt/tools-console.py
           python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/freeisp/navigation.js
           python3 -m py_compile tools/openwrt/verify.py

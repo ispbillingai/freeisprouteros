@@ -1,0 +1,50 @@
+const { chromium }=require('playwright');
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const checks={};
+(async()=>{
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+ const context=await browser.newContext({viewport:{width:1400,height:1000}});
+ const page=await context.newPage();
+ const errors=[],preLoginWarnings=[]; page.on('pageerror',e=>errors.push(e.message));
+ try {
+  await page.goto('http://127.0.0.1:18940/cgi-bin/luci/admin/network/freeisp_tools');
+  await page.locator('input[name=luci_password]').fill('FreeISP-Tools-Local-Test-Only');
+  await page.locator('.cbi-button-positive').first().click();
+  await page.locator('.fi-tool-list button').first().waitFor({timeout:30000});
+  preLoginWarnings.push(...errors.splice(0));
+  assert.equal(await page.locator('.fi-tool-list button').count(),20);checks.menu_20_tools=true;
+  await page.getByLabel('Destination',{exact:true}).fill('127.0.0.1');
+  await page.getByRole('button',{name:'Run',exact:true}).click();
+  await page.locator('.fi-tool-output').filter({hasText:'0% packet loss'}).waitFor({timeout:15000});checks.real_ping=true;
+  await page.getByLabel('Destination',{exact:true}).fill('127.0.0.1;id');
+  await page.getByRole('button',{name:'Run',exact:true}).click();
+  await page.locator('.fi-tool-output').filter({hasText:'Failed:'}).waitFor();checks.invalid_input=true;
+  await page.locator('[data-tool=romon]').click();
+  assert.equal(await page.getByRole('button',{name:'Run',exact:true}).isDisabled(),true);checks.unsupported_disabled=true;
+  await page.locator('[data-tool=bandwidth]').click();
+  await page.getByLabel('iperf3 server',{exact:true}).fill('127.0.0.1');
+  await page.getByLabel('Port',{exact:true}).fill('59999');
+  await page.getByRole('button',{name:'Run',exact:true}).click();
+  await page.locator('.fi-tool-output').filter({hasText:'Failed:'}).waitFor({timeout:15000});checks.connection_failure=true;
+  await page.locator('[data-tool=netwatch]').click();
+  await page.getByLabel('Monitor enabled').selectOption('0');
+  await page.getByLabel('Destination',{exact:true}).fill('127.0.0.1');
+  await page.getByLabel('Probe interval').fill('25');
+  await page.getByRole('button',{name:'Save settings',exact:true}).click();
+  await page.locator('.fi-tool-output').filter({hasText:'Settings saved'}).waitFor({timeout:15000});
+  await page.reload();await page.locator('[data-tool=netwatch]').click();
+  assert.equal(await page.getByLabel('Probe interval').inputValue(),'25');checks.settings_after_reload=true;
+  await page.locator('[data-tool=graph]').click();
+  await page.waitForFunction(()=>document.querySelector('.fi-tool-output').textContent.includes('Mbit/s'),null,{timeout:20000});checks.graph_rates=true;
+  await page.screenshot({path:'artifacts/tools-ui.png',fullPage:true});
+  await page.locator('[data-tool=netwatch]').click();
+  await context.setOffline(true);
+  await page.getByText('Router unreachable. Displayed results are stale.').waitFor({timeout:20000});checks.disconnection_status=true;
+  assert.deepEqual(errors,[]);checks.no_authenticated_browser_errors=true;
+ }finally{
+  await page.screenshot({path:'artifacts/tools-ui-final.png',fullPage:true});
+  fs.writeFileSync('artifacts/tools-ui.json',JSON.stringify({checks,errors,preLoginWarnings},null,2));await browser.close();
+ }
+ console.log(JSON.stringify(checks,null,2));
+})().catch(e=>{console.error(e);process.exitCode=1;});
