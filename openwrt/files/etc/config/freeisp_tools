@@ -1,0 +1,15 @@
+config server 'btest'
+ option enabled '0'
+ option address '127.0.0.1'
+ option port '5201'
+
+config watch 'netwatch'
+ option enabled '0'
+ option host '127.0.0.1'
+ option interval '30'
+
+config email 'email'
+ option host ''
+ option port '587'
+ option from ''
+ option username ''

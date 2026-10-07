@@ -1,10 +1,12 @@
 # FreeISP Desk for Windows — Device Hub
 
-Version 0.2.3 keeps a branded local window around the management workspace,
+Version 0.2.4 keeps a branded local window around the management workspace,
 with the original FreeISP taskbar/window icon, an immediate loading surface,
 retry and Device Hub controls. The stable Windows application identity is
 `FreeISP.Desk`. Day/Night themes, login, saved routers and gateway discovery
-remain in the bundled Device Hub.
+remain in the bundled Device Hub. Router Tools opens the connected router’s
+[Tools workspace](../openwrt/TOOLS.md). The shared connection helper rejects
+empty sessions and validates login without following redirects.
 
 The management pages still use LuCI's router HTML and live API calls. This is
 not a complete local, data-only management client. Static JavaScript, CSS,
@@ -53,7 +55,7 @@ untrusted hints; HTTPS certificate checks remain enabled when connecting.
 ## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.3
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.4
 
 Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
 Hub and are also usable as a static design preview; login and discovery require
@@ -74,7 +76,7 @@ the executable; no router credentials or live connection are used by this check.
 The test also verifies the explicit Windows identity, local shell and cache
 origin/type/size/revision guards. Run the real WebView cache fixture on Windows:
 
-    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.2.3/FreeISP Desk.exe" --output artifacts/tests/cache-browser
+    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.2.4/FreeISP Desk.exe" --output artifacts/tests/cache-browser
 
 This serves only a loopback fixture and runs a hidden, isolated application
 profile. It verifies first network load, local asset reuse, revision refresh,
@@ -82,3 +84,9 @@ invalid-manifest bypass, uncached API reads and intact router form POSTs.
 It is not evidence of compatibility with every router page or of offline
 router operation. The Windows icon may need an old pinned shortcut to be
 unpinned and the new executable pinned again if Explorer retained its old icon.
+
+The connection self-test also uses disposable loopback HTTP fixtures. Run
+`--self-test` twice from the same test folder to verify saved-router and theme
+persistence across process launches. With the disposable Tools VM on loopback
+port 18940, `--self-test --tools-router-test` checks real router login, the native
+Router Tools button and ping. These tests do not use a production router.

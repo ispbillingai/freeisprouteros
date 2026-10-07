@@ -17,3 +17,10 @@ python3
 kmod-sched-core
 kmod-sched-act-police
 nftables-json
+coreutils-timeout
+iputils-ping
+iperf3
+fping
+etherwake
+msmtp
+ca-bundle

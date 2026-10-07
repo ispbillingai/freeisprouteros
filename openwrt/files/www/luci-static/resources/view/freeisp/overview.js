@@ -21,7 +21,7 @@ return view.extend({
             ['Routing', 'IPv4 and IPv6 static routes and routing rules.', ['network','routes']],
             ['Queues', 'Upload and download shaping per interface. Configure PPPoE subscriber limits in their profiles.', ['network','freeisp_queues']],
             ['Bandwidth usage', 'Traffic accounting by local host through nlbwmon.', ['services','nlbw','display']],
-            ['Diagnostics', 'Ping, traceroute and DNS lookup from the router.', ['network','diagnostics']],
+            ['Tools', 'Router diagnostics, packet capture and supported maintenance tools.', ['network','freeisp_tools']],
             ['System & appearance', 'Identity, time and selectable interface themes.', ['system','system']],
             ['Backup & firmware', 'Configuration backup, restore and OpenWrt upgrade tools.', ['system','flash']],
             ['Logs', 'Live system and kernel events, with freeze and filtering.', ['status','freeisp_log']],

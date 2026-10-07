@@ -13,4 +13,5 @@ openwrt/files/usr/libexec/freeisp-bridge-status text eol=lf
 openwrt/files/etc/init.d/* text eol=lf
 openwrt/files/usr/libexec/rpcd/* text eol=lf
 openwrt/files/lib/upgrade/keep.d/* text eol=lf
+*.uc text eol=lf
 openwrt/packages.txt text eol=lf

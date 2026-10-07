@@ -1,0 +1,7 @@
+{
+ "admin/network/freeisp_tools": {
+  "title": "FreeISP Tools", "order": 90,
+  "action": {"type": "view", "path": "freeisp/tools"},
+  "depends": {"acl": ["luci-app-freeisp-tools"]}
+ }
+}

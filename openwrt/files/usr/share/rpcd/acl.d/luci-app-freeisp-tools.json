@@ -1,0 +1,7 @@
+{
+ "luci-app-freeisp-tools": {
+  "description": "Read router tool availability and live status",
+  "read": {"ubus": {"freeisp.tools": ["status"]}},
+  "write": {"ubus": {"freeisp.tools": ["run", "save"]}}
+ }
+}

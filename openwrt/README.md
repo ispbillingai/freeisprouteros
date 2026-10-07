@@ -89,6 +89,13 @@ pool management, per-account rates and live session controls. Pools reserve stab
 addresses per account. See its verification instructions and platform limits.
 Billing plans, AP controller and the dashboard compatibility
 contract remain additional product work.
+The [FreeISP Tools workspace](TOOLS.md) adds authenticated diagnostic actions,
+packet sampling, throughput tests, persistent Netwatch and iperf3 service settings,
+SMTP and Wake-on-LAN. Its feature matrix documents the supported equivalents,
+actual test evidence and remaining gaps in RouterOS parity.
+
+PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
+AP controller and the dashboard compatibility contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif
 are vendor-specific features, not OpenWrt features that can be renamed into existence.
 Wireless, switch offload, mesh and 802.1X need suitable hardware and their own tests.

@@ -23,6 +23,8 @@ chmod 755 "$FILES/usr/bin/freeisp-command-line"
 python3 "$PROJECT/tools/openwrt/release-manifest.py" --root "$FILES"
 chmod 755 "$FILES/etc/uci-defaults/98-freeisp-hotspot" \
     "$FILES/etc/init.d/freeisp-hotspot" "$FILES/usr/libexec/rpcd/freeisp.hotspot"
+chmod 755 "$FILES/etc/uci-defaults/98-freeisp-tools" "$FILES/etc/init.d/freeisp-tools" "$FILES/usr/libexec/rpcd/freeisp.tools"
+chmod 600 "$FILES/etc/config/freeisp_tools"
 mkdir -p "$FILES/etc/freeisp"
 export FREEISP_FILES="$FILES"
 python3 - <<'PY'

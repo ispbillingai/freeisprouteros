@@ -1,8 +1,12 @@
 {
   "date": "2026-10-07",
-  "version": "0.2.3",
-  "branch": "codex/desk-release",
-  "build": {"configuration": "Release x64 net48", "warnings": 0, "errors": 0},
+  "version": "0.2.4",
+  "branch": "codex/release-review",
+  "build": {
+    "configuration": "Release x64 net48",
+    "warnings": 0,
+    "errors": 0
+  },
   "standalone_offline_test": {
     "passed": true,
     "hub": true,
@@ -16,21 +20,56 @@
   },
   "actual_webview_loopback_fixture": {
     "passed": true,
-    "first_network_asset_load": true,
-    "same_revision_local_asset_reuse": true,
-    "changed_revision_fetches_new_asset": true,
-    "invalid_manifest_bypasses_cache": true,
-    "api_calls_remain_live": true,
-    "router_form_post_method_and_body_preserved": true,
-    "page_loads": 5,
-    "api_reads": 5,
-    "network_asset_reads": 4
+    "firstNetworkLoad": true,
+    "sameRevisionLocalAsset": true,
+    "revisionRefresh": true,
+    "missingManifestBypass": true,
+    "apiNeverCached": true,
+    "formPostPreserved": true,
+    "stats": {
+      "revision": "invalid-manifest",
+      "version": "C",
+      "assets": 4,
+      "api": 5,
+      "html": 5,
+      "postIntact": true
+    }
   },
   "limitations": [
     "LuCI management HTML and bootstrap still come from the router; this is not a fully bundled data-only management client.",
     "Real deployed-router integration and every management feature were not tested in this isolated desktop task.",
     "No native executable auto-updater is included.",
-    "Windows may retain the icon of an old pinned shortcut until it is pinned again from the new executable."
+    "Windows may retain the icon of an old pinned shortcut until it is pinned again from the new executable.",
+    "Combined 0.2.4 real-router Tools ping test was not rerun: disposable loopback router port 18940 was unavailable. Native button presence and connection helper were verified locally."
   ],
-  "executable_sha256": "0e8b5966c4bc7eb6322e704ac4aa4b47fd3b5f018c869a7526bcac7e600228aa"
+  "executable_sha256": "2db5a253e5fd65be36b9282255f3256302004da3615c5c9c87f2a631080a27b2",
+  "merged_sources": [
+    "16f9c080e9321a64efaf9834bdb8955849e95d0d",
+    "fd299f0"
+  ],
+  "combined_native_self_test": {
+    "passed": true,
+    "checks": {
+      "offline_navigation": true,
+      "asset_cache_guards": true,
+      "windows_app_identity": true,
+      "original_icon": true,
+      "local_shell": true,
+      "router_tools_button": true,
+      "offline_hub_and_logo": true,
+      "saved_router_survives_restart": true,
+      "theme_survives_restart": true,
+      "address_valid": true,
+      "invalid_addresses_rejected": true,
+      "connection_success": true,
+      "connection_invalid_credentials": true,
+      "connection_empty_session": true,
+      "connection_redirect": true,
+      "connection_connection_refused": true,
+      "saved_router_round_trip": true,
+      "saved_router_rendered": true,
+      "theme_saved": true
+    },
+    "url": "https://freeisp-desk.local/index.html"
+  }
 }
