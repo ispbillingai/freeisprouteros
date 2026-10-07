@@ -21,7 +21,8 @@
  let preference; try { preference = localStorage.getItem('freeisp-desk-theme'); } catch (_) {}
  theme(preference === 'night' ? 'night' : 'day');
  $('day').onclick = () => theme('day'); $('night').onclick = () => theme('night');
- $('hub').onclick = () => send({action: 'hub'});
+ $('logout').onclick = () => { if (hasRouter) send({action: 'disconnect'}); };
+ $('current-interfaces').onclick = () => { $('search').focus(); };
  $('settings').onclick = () => { if (hasRouter) send({action: 'openRouterPage', route: 'network/freeisp_interfaces'}); };
  document.querySelectorAll('[data-route]').forEach(button => { button.onclick = () => { if (hasRouter) send({action: 'openRouterPage', route: button.dataset.route}); }; });
  $('search').oninput = drawTable;
@@ -69,6 +70,7 @@
   hasRouter = typeof context.router === 'string' && context.router.trim().length > 0;
   $('router').textContent = hasRouter ? context.router : 'Choose a router to see its connections.'; $('settings').disabled = !hasRouter;
   document.querySelectorAll('[data-route]').forEach(button => { button.disabled = !hasRouter; });
+  $('logout').disabled = !hasRouter;
   $('search').value = ''; $('sample-age').textContent = 'No data received';
   state('waiting', hasRouter ? 'Reading router data' : 'Choose a router', hasRouter ? 'Your interface workspace is ready. Waiting for the first reading.' : 'Open Device Hub to connect. This workspace is ready on your computer.');
   draw(); schedule(0);
