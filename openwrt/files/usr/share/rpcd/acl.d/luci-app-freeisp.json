@@ -2,26 +2,118 @@
   "luci-app-freeisp-queues": {
     "description": "Manage FreeISP SQM queues and read kernel queue status",
     "read": {
-      "uci": ["sqm"],
+      "uci": [
+        "sqm"
+      ],
       "file": {
-        "/var/run/sqm/available_qdiscs": ["list"],
-        "/usr/lib/sqm": ["list"],
-        "/sbin/tc -s -j qdisc show": ["exec"]
+        "/var/run/sqm/available_qdiscs": [
+          "list"
+        ],
+        "/usr/lib/sqm": [
+          "list"
+        ],
+        "/sbin/tc -s -j qdisc show": [
+          "exec"
+        ]
       },
-      "ubus": {"file": ["list", "exec"], "luci-rpc": ["getNetworkDevices"], "uci": ["get", "changes"]}
+      "ubus": {
+        "file": [
+          "list",
+          "exec"
+        ],
+        "luci-rpc": [
+          "getNetworkDevices"
+        ],
+        "uci": [
+          "get",
+          "changes"
+        ]
+      }
     },
     "write": {
-      "uci": ["sqm"],
-      "file": {"/etc/init.d/sqm enable": ["exec"]},
-      "ubus": {"file": ["exec"], "uci": ["add", "set", "delete", "order", "apply", "confirm", "revert"]}
+      "uci": [
+        "sqm"
+      ],
+      "file": {
+        "/etc/init.d/sqm enable": [
+          "exec"
+        ]
+      },
+      "ubus": {
+        "file": [
+          "exec"
+        ],
+        "uci": [
+          "add",
+          "set",
+          "delete",
+          "order",
+          "apply",
+          "confirm",
+          "revert"
+        ]
+      }
     }
   },
   "luci-app-freeisp": {
     "description": "FreeISP Quick Set network configuration",
     "read": {
-      "uci": ["network", "dhcp", "firewall", "system"],
-      "ubus": {"network.interface": ["dump"], "network.device": ["status"]}
+      "uci": [
+        "network",
+        "dhcp",
+        "firewall",
+        "system"
+      ],
+      "ubus": {
+        "network.interface": [
+          "dump"
+        ],
+        "network.device": [
+          "status"
+        ]
+      }
     },
-    "write": {"uci": ["network", "dhcp", "firewall", "system"]}
+    "write": {
+      "uci": [
+        "network",
+        "dhcp",
+        "firewall",
+        "system"
+      ]
+    }
+  },
+  "luci-app-freeisp-command-line": {
+    "description": "FreeISP Command Line diagnostics and router identity",
+    "read": {
+      "uci": [
+        "network",
+        "system"
+      ],
+      "ubus": {
+        "system": [
+          "board",
+          "info"
+        ],
+        "network.interface": [
+          "dump"
+        ],
+        "luci-rpc": [
+          "getNetworkDevices"
+        ],
+        "file": [
+          "exec"
+        ]
+      },
+      "file": {
+        "/usr/bin/freeisp-command-line": [
+          "exec"
+        ]
+      }
+    },
+    "write": {
+      "uci": [
+        "system"
+      ]
+    }
   }
 }

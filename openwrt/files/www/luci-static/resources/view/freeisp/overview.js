@@ -10,20 +10,22 @@ return view.extend({
     render: function(data) {
         var links = [
             ['WiFi', 'Interfaces, security profiles, channels, access lists and connected clients.', ['wifi','interfaces']],
-            ['Interfaces & bridges', 'Ports, addresses, bridges, VLANs and PPPoE client connections.', ['network','network']],
+            ['Interfaces', 'Ports, addresses and PPPoE client connections.', ['network','network']],
+            ['Bridge / VLAN', 'Bridge ports, tagged and untagged VLANs and learned hosts.', ['network','freeisp_bridge']],
+            ['Files', 'Persistent router file storage, upload and download.', ['system','freeisp_files']],
             ['PPPoE', 'Servers, subscriber secrets, profiles, address pools and active connections.', ['network','freeisp_pppoe']],
             ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],
             ['DNS', 'DNS forwarding, local names and upstream resolvers.', ['network','dns']],
             ['Routing', 'IPv4 and IPv6 static routes and routing rules.', ['network','routes']],
-            ['Queues / SQM', 'Upload and download shaping per interface. Configure PPPoE subscriber limits in their profiles.', ['network','sqm']],
+            ['Queues', 'Upload and download shaping per interface. Configure PPPoE subscriber limits in their profiles.', ['network','freeisp_queues']],
             ['Bandwidth usage', 'Traffic accounting by local host through nlbwmon.', ['services','nlbw','display']],
             ['Diagnostics', 'Ping, traceroute and DNS lookup from the router.', ['network','diagnostics']],
             ['System & appearance', 'Identity, time and selectable interface themes.', ['system','system']],
             ['Backup & firmware', 'Configuration backup, restore and OpenWrt upgrade tools.', ['system','flash']],
             ['Logs', 'Live system and kernel events, with freeze and filtering.', ['status','freeisp_log']],
             ['Software', 'Install and remove packages from OpenWrt repositories.', ['system','package-manager']],
-            ['Commands', 'Authenticated maintenance commands; start with memory and uptime.', ['system','commands']]
+            ['Command Line', 'Router diagnostics, command history and identity settings.', ['system','freeisp_command_line']]
         ];
         return E('div', {}, [
             E('div', {'class':'freeisp-intro'}, [E('h2', {}, 'FreeISP router workspace'),

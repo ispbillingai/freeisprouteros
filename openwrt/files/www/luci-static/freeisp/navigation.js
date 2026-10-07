@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],
         ['System', 'system/system'], ['Files', 'system/freeisp_files'], ['Log', 'status/freeisp_log'],
-        ['Tools', 'network/diagnostics'], ['Commands', 'system/commands'], ['Software', 'system/package-manager'], ['Logout', 'logout']
+        ['Tools', 'network/diagnostics'], ['Command Line', 'system/freeisp_command_line'], ['Software', 'system/package-manager'], ['Logout', 'logout']
     ];
     entries.forEach(function(item) {
         var element = document.createElement(item[1] ? 'a' : 'span');

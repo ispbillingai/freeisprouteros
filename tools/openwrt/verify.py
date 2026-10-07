@@ -117,6 +117,14 @@ try:
         check('incorrect_password_rejected', isinstance(rejected, int) and rejected != 0)
         board = router.rpc('system', 'board')
         check('official_release_and_identity', board['release']['version'] == '25.12.5' and board['hostname'] == 'FreeISP')
+        command_line = '/usr/bin/freeisp-command-line'
+        def command_line_rpc(args):
+            return router.rpc('file', 'exec', {'command': command_line, 'params': args})
+        check('command_line_ipv4_routes', command_line_rpc(['routes4']).get('code') == 0)
+        check('command_line_ipv6_routes', command_line_rpc(['routes6']).get('code') == 0)
+        check('command_line_logs', command_line_rpc(['log']).get('code') == 0)
+        check('command_line_loopback_ping', command_line_rpc(['ping', '127.0.0.1', '1']).get('code') == 0)
+        check('command_line_invalid_input_rejected', command_line_rpc(['ping', '-f', '1']).get('code') == 2)
         wan = router.interface('wan')
         check('wan_dhcp_up', wan['up'] and wan['ipv4-address'][0]['address'] == '10.0.2.15')
         check('lan_bridge_up', router.interface('lan')['device'] == 'br-lan')

@@ -118,6 +118,42 @@ security profiles, channels, access rules, registration status and client
 connections. Its coverage, backend behavior and remaining hardware tests are
 documented separately. The VM still has no WiFi radio.
 
+## Command Line
+
+The **Command Line** menu opens an interactive FreeISP console using a
+[MikroTik-style command hierarchy](https://help.mikrotik.com/docs/spaces/ROS/pages/328134/Command+Line+Interface)
+over OpenWrt's authenticated RPC and configuration services. It is a FreeISP
+command subset, not a RouterOS interpreter or an SSH shell. Existing upstream
+saved commands remain available through All OpenWrt menus.
+
+Use `?` for context help, `/` for root, `..` for the parent, Tab for completion,
+and Up/Down for in-memory history. Absolute paths accept both `/ip address print`
+and `/ip/address/print`; unique abbreviations work. `print detail` and exact
+`print where property=value` filters work on tabular commands.
+
+Supported commands:
+
+- `/system resource print`, `/system identity print`
+- `/interface print`, `/interface ethernet print`, `/interface bridge print`, `/interface vlan print`
+- `/ip address print`, `/ipv6 address print`, `/ip dns print`
+- `/ip route print`, `/ipv6 route print`, `/log print` (last 100 messages)
+- `/ping address=1.1.1.1 count=4` (or `ping 1.1.1.1`; 1–5 packets)
+- `/system identity set name=Branch-1`, `/pending`, `/apply`, `/discard`, `/clear`
+
+Identity is the supported configuration write. It is staged on the page until
+`/apply`, checks for conflicting pending changes and stale identity, then uses
+LuCI's rollback-protected apply flow. Other configuration changes use the existing
+router editors. Diagnostics use a fixed server-side wrapper that validates its
+arguments; no arbitrary shell execution permission is granted. Read-only users
+cannot save identity changes. Commands are serialized, failures remain visible,
+and history is limited to 100 entries in this page's memory.
+
+Local checks: `node tools/openwrt/test-command-line.cjs`. Browser checks:
+`node tools/openwrt/test-command-line-ui.cjs` with Playwright installed. The browser
+checks use sample RPC replies and write screenshots under `artifacts/tests/command-line`.
+`tools/openwrt/verify.py` additionally tests diagnostic execution through authenticated
+RPC on the staging VM. Local tests do not establish that an image is deployed.
+
 ## VPS lab and access
 
 This is a guest VM, not a replacement for the Ubuntu host. Host routes are untouched.

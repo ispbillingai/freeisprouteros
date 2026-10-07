@@ -2,13 +2,40 @@
   "admin/network/freeisp_queues": {
     "title": "FreeISP Queues",
     "order": 7,
-    "action": {"type": "view", "path": "freeisp/queues"},
-    "depends": {"acl": ["luci-app-freeisp-queues"]}
+    "action": {
+      "type": "view",
+      "path": "freeisp/queues"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp-queues"
+      ]
+    }
   },
   "admin/freeisp": {
     "title": "FreeISP",
     "order": 1,
-    "action": {"type": "view", "path": "freeisp/quickset"},
-    "depends": {"acl": ["luci-app-freeisp"]}
+    "action": {
+      "type": "view",
+      "path": "freeisp/quickset"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp"
+      ]
+    }
+  },
+  "admin/system/freeisp_command_line": {
+    "title": "Command Line",
+    "order": 70,
+    "action": {
+      "type": "view",
+      "path": "freeisp/command-line"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp-command-line"
+      ]
+    }
   }
 }

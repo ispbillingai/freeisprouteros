@@ -42,3 +42,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/freeisp-files-tests" playwright@1.62.1
           "$RUNNER_TEMP/freeisp-files-tests/node_modules/.bin/playwright" install --with-deps chromium
           NODE_PATH="$RUNNER_TEMP/freeisp-files-tests/node_modules" node tools/openwrt/test-files-ui.cjs
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/command-line.js
+          node --check openwrt/files/www/luci-static/resources/freeisp/command-line.js
+          node --check openwrt/files/www/luci-static/resources/freeisp/command-line-backend.js
+          node tools/openwrt/test-command-line.cjs
