@@ -1,0 +1,16 @@
+{
+  "target": "linux-x86_64-vm",
+  "stage": "development_lab",
+  "base": "Alpine Linux 3.24.2 with signed repository packages",
+  "hypervisor": "QEMU q35, KVM where available or TCG software emulation",
+  "ram_mib": 512,
+  "state_disk_mib": 64,
+  "boot": "kernel and initramfs with dedicated state disk; direct QEMU boot",
+  "physical_hardware_installable": false,
+  "production_ready": false,
+  "management": "HTTPS on guest TCP 8443; host loopback TCP 8843",
+  "network_roles": ["WAN DHCP", "customer LAN", "isolated lab maintenance"],
+  "configuration_recovery": "60-second confirmation and persistent last-good settings",
+  "automatic_system_image_rollback": false,
+  "validation": "reports/linux-vm-validation.json"
+}

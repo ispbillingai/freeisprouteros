@@ -1,0 +1,42 @@
+#!/bin/sh
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PYTHONPATH=/usr/lib
+export PYTHONUNBUFFERED=1
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mkdir -p /run /data /dev/pts
+mount -t devpts devpts /dev/pts
+mount -t tmpfs tmpfs /run
+hostname freeisp
+modprobe virtio_pci
+modprobe virtio_net
+modprobe virtio_blk
+modprobe ext4
+modprobe nf_tables
+modprobe nft_chain_nat
+modprobe nft_masq
+modprobe nf_conntrack
+ip link set lo up
+sleep 1
+case " $(cat /proc/cmdline) " in
+ *" freeisp.client=1 "*)
+    /usr/bin/python3 /usr/lib/freeisp/client_test.py
+    sync
+    poweroff -f
+    ;;
+ *" freeisp.appliance=1 "*)
+    # Never format an attached disk. Only mount the pre-created state volume.
+    if ! blkid /dev/vda | grep -q 'LABEL="FREEISP_STATE"' || ! mount -t ext4 /dev/vda /data; then
+        echo 'FREEISP_FATAL: missing state disk; no routing enabled'
+    else
+        chmod 700 /data
+        /usr/bin/python3 -m freeisp.agent
+        echo 'FREEISP_FATAL: management process stopped'
+        echo 0 > /proc/sys/net/ipv4/ip_forward
+    fi
+    ;;
+ *) echo 'FREEISP_FATAL: unrecognized boot profile';;
+esac
+echo 'Serial maintenance console. Type reboot -f to restart with saved settings.'
+exec /bin/sh

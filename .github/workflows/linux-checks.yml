@@ -1,0 +1,18 @@
+name: Linux configuration checks
+on:
+  push:
+    paths: ['linux/**', 'tools/linux/**', 'tests/test_linux_appliance.py', '.github/workflows/linux-checks.yml']
+  pull_request:
+    paths: ['linux/**', 'tools/linux/**', 'tests/test_linux_appliance.py', '.github/workflows/linux-checks.yml']
+permissions:
+  contents: read
+jobs:
+  configuration-recovery:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configuration validation and recovery tests
+        run: python3 tests/test_linux_appliance.py
+      - name: Shell syntax
+        run: |
+          for f in linux/init tools/linux/*.sh; do sh -n "$f"; done
