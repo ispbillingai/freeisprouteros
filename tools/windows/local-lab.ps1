@@ -9,8 +9,16 @@ $labRoot = [IO.Path]::GetFullPath($LabDirectory).TrimEnd('\') + '\'
 $names = @('FreeISP Router Lab', 'FreeISP Customer Lab')
 function Invoke-VBox {
     param([string[]]$Arguments)
-    $output = & $vbox @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) { throw ($output -join "`n") }
+    # VBox prints normal progress to stderr; Windows PowerShell wraps it as
+    # error records. Judge success by its exit status instead of that stream.
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & $vbox @Arguments 2>&1
+        $resultCode = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousPreference }
+    if ($resultCode -ne 0) { throw ($output -join "`n") }
+    $output = $output | ForEach-Object { $_.ToString() }
     return $output
 }
 function Get-LabVM {
