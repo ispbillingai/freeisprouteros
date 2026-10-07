@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-07",
+  "branch": "codex/ip-service",
+  "review": "Scoped IP Service changes in an isolated worktree; shared-root copies were not changed.",
+  "local_verification": {
+    "ip_service_model_and_permissions": "9 passed",
+    "ftp_configuration_and_lifecycle": "6 passed",
+    "api_socket_and_process_boundary": "21 passed",
+    "browser_fixture": "passed: five service rows, details, search, failed reads, recovery, Day/Night and mobile layout"
+  },
+  "prior_author_integration_evidence_reviewed": {
+    "platform": "Disposable official OpenWrt 25.12.5 x86_64 rootfs in WSL",
+    "ftp": "vsftpd 3.0.5-r6: actual active/passive binary transfers, invalid/anonymous login rejection, confined nonwritable jail and traversal denial passed with disposable credentials",
+    "api": "Actual ucode/ubus/rpcd root authentication, per-call session/ACL checks, persistent identity write, restricted file listing and TCP protocol subset passed",
+    "limitations": "Not a fully booted router; API system reload used a recording stub to protect the WSL host, and inventory mappings used captured-shape fixtures. Procd boot/reload and VPS integration still require staging."
+  },
+  "deployment": {
+    "new_api_and_ftp_configs": "disabled by default",
+    "existing_configs": "preserve operator-edited configs; do not overwrite SSH, uHTTPd or firewall configuration",
+    "packages": ["vsftpd", "python3", "ucode", "ucode-mod-fs", "ucode-mod-ubus", "rpcd-mod-file"],
+    "www_settings": "Uses existing luci-mod-system admin/system/admin/uhttpd; no additional web listener is created",
+    "files_storage": "FTP and API use /srv/freeisp/files; the separately developed Files workspace currently uses /srv/freeisp-files",
+    "api_compatibility": "Explicit command subset, not complete RouterOS compatibility",
+    "transport": "API and FTP are unencrypted; enable only with a trusted bind address and access policy or protected tunnel"
+  }
+}

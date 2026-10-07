@@ -36,6 +36,18 @@ jobs:
           python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-tools.json > /dev/null
           python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-tools.json > /dev/null
           python3 -m py_compile tools/openwrt/test-tools-vm.py tools/openwrt/tools_vm_client.py tools/openwrt/tools-smtp-fixture.py tools/openwrt/tools-console.py
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/ip-service.js
+          node --check openwrt/files/www/luci-static/resources/freeisp/ip-service-data.js
+          node tools/openwrt/test-ip-service.cjs
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/api-settings.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/ftp-settings.js
+          node tools/openwrt/test-ftp.cjs
+          python3 tools/openwrt/test-api-service.py
+          sh -n openwrt/files/etc/init.d/freeisp-api
+          sh -n openwrt/files/etc/init.d/freeisp-ftp
+          sh -n openwrt/files/usr/lib/freeisp/ftp.sh
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-ip-service.json > /dev/null
+          python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-ip-service.json > /dev/null
           python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/freeisp/navigation.js
           python3 -m py_compile tools/openwrt/verify.py

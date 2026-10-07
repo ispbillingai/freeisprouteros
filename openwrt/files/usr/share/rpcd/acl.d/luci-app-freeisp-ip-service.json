@@ -1,0 +1,11 @@
+{
+  "luci-app-freeisp-ip-service": {
+    "description": "Read FreeISP IP Service connections and process status",
+    "read": {"uci": ["dropbear", "uhttpd", "freeisp_api", "freeisp_ftp"], "ubus": {"service": ["list"]}}
+  },
+  "luci-app-freeisp-ip-service-settings": {
+    "description": "Configure FreeISP API and FTP services",
+    "read": {"uci": ["freeisp_api", "freeisp_ftp"]},
+    "write": {"uci": ["freeisp_api", "freeisp_ftp"]}
+  }
+}

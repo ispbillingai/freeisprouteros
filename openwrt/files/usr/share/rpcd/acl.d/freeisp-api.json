@@ -1,0 +1,22 @@
+{
+  "freeisp-api": {
+    "description": "Support the authenticated FreeISP API command subset",
+    "read": {
+      "ubus": {
+        "system": ["board", "info"],
+        "network.device": ["status"],
+        "network.interface": ["dump"],
+        "service": ["list"],
+        "uci": ["get"],
+        "file": ["list"]
+      },
+      "uci": ["system", "network", "dropbear", "uhttpd", "freeisp_api", "freeisp_ftp"],
+      "file": {"/srv/freeisp/files": ["list"]}
+    },
+    "write": {
+      "ubus": {"uci": ["set", "commit", "revert"], "file": ["exec"]},
+      "uci": ["system"],
+      "file": {"/etc/init.d/system": ["exec"]}
+    }
+  }
+}

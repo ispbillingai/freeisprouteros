@@ -18,6 +18,7 @@ return view.extend({
             ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],
             ['DNS', 'DNS forwarding, local names and upstream resolvers.', ['network','dns']],
+            ['IP Service', 'API, FTP, SSH, FreeISP Desk and web management connections.', ['network','freeisp_ip_service']],
             ['Routing', 'IPv4 and IPv6 static routes and routing rules.', ['network','routes']],
             ['Queues', 'Upload and download shaping per interface. Configure PPPoE subscriber limits in their profiles.', ['network','freeisp_queues']],
             ['Bandwidth usage', 'Traffic accounting by local host through nlbwmon.', ['services','nlbw','display']],

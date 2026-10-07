@@ -1,0 +1,4 @@
+#!/bin/sh
+# This opens no firewall ports. Existing zone policies govern access.
+/etc/init.d/freeisp-api enable
+exit 0

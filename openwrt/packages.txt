@@ -24,3 +24,8 @@ fping
 etherwake
 msmtp
 ca-bundle
+vsftpd
+ucode
+ucode-mod-fs
+ucode-mod-ubus
+rpcd-mod-file

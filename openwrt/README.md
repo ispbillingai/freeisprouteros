@@ -93,6 +93,57 @@ The [FreeISP Tools workspace](TOOLS.md) adds authenticated diagnostic actions,
 packet sampling, throughput tests, persistent Netwatch and iperf3 service settings,
 SMTP and Wake-on-LAN. Its feature matrix documents the supported equivalents,
 actual test evidence and remaining gaps in RouterOS parity.
+Network → IP Service lists API, FTP, SSH, FreeISP Desk and WWW. It reads each
+service's actual process state and configured ports. Failed reads show Unknown;
+a configured server without a running process shows Stopped. Firewall policy
+still determines reachability. API and FTP have their own settings pages for
+enable/disable, listen address and port. SSH keeps its existing port (22 by
+default). FreeISP Desk currently shares WWW's HTTP/HTTPS connection (80/443 in
+the standard profile); it has no separate 8291 listener. The lab tunnel exposes
+the router web service locally at 127.0.0.1:8874.
+
+New installations leave API and FTP disabled. Enable them deliberately in IP
+Service settings after selecting a trusted management bind address and access
+policy. Installing the feature does not change SSH/WWW listeners or firewall
+rules. An overlay update must preserve existing operator-edited service configs.
+
+The image includes the official `vsftpd` package, supervised as `freeisp-ftp`,
+using TCP 21 with passive data ports 50000–50009 when enabled. Authenticate with the router root
+password. Successful sessions run as a locked, unprivileged service account,
+confined to `/srv/freeisp`; the writable FTP `/files` directory maps to
+`/srv/freeisp/files`. Anonymous access and additional login accounts are disabled.
+The daemon refuses to start with a missing/locked root password or an unexpected
+service account. The package's separate default daemon is disabled. Port, bind
+address, passive range and optional NAT passive address are editable. Active
+and passive transfers are supported. This FTP listener does not provide FTPS.
+The packaged vsftpd 3.0.5-r6 seccomp filter is disabled because its syscall list
+rejects musl's `setitimer` during login in the tested x86_64 environment. Chroot,
+unprivileged session mapping and the root-only login allowlist remain enabled.
+Re-enable seccomp only after validating a corrected package/filter.
+
+When enabled, `freeisp-api` listens on TCP 8728 and accepts RouterOS post-6.43 API
+login with the router root account. Authentication and every platform operation
+are checked through OpenWrt RPC sessions; credentials are never passed in process
+arguments. This is a defined compatibility subset, not full RouterOS coverage:
+
+- `/system/resource/print`, `/system/identity/print`, `/system/identity/set`
+- `/interface/print`, `/interface/ethernet/print`, `/interface/bridge/print`, `/interface/vlan/print`
+- `/ip/address/print`, `/ip/route/print`, `/ip/dns/print`, `/ip/service/print`
+- `/file/print` for the shared FTP file folder
+
+Tags, `.proplist`, and property existence/absence/equality filters joined by AND
+are supported. Unsupported commands, attributes and queries return API traps.
+Identity is the supported persistent write. Old challenge-response login,
+API-SSL, subscriber provisioning and the full historical dashboard command
+inventory are not implemented. FTP and API use the existing LAN/management zone
+policy; the default WAN rejection remains intact. Use trusted networks or a
+protected tunnel for these unencrypted protocols.
+
+Local checks: `node tools/openwrt/test-ip-service.cjs`,
+`node tools/openwrt/test-ftp.cjs`, and `python3 tools/openwrt/test-api-service.py`.
+The browser fixture `node tools/openwrt/test-ip-service-ui.cjs` uses sample data;
+its screenshots are not live router status. Image build/deployment and external
+client compatibility must be validated separately from these local checks.
 
 PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
 AP controller and the dashboard compatibility contract remain additional product work.

@@ -1,0 +1,4 @@
+config service 'main'
+ option enabled '0'
+ option port '8728'
+ option listen_address '0.0.0.0'

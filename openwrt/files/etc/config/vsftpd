@@ -1,0 +1,5 @@
+# The packaged daemon is managed by freeisp-ftp; never run a second instance
+# with the package's unrestricted default local-user filesystem access.
+config global 'global'
+	option disabled '1'
+	option mdns '0'

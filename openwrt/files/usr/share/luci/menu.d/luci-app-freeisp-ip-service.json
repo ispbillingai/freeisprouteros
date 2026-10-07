@@ -1,0 +1,18 @@
+{
+  "admin/network/freeisp_ip_service": {
+    "title": "IP Service",
+    "order": 25,
+    "action": {"type": "view", "path": "freeisp/ip-service"},
+    "depends": {"acl": ["luci-app-freeisp-ip-service"]}
+  },
+  "admin/network/freeisp_api_settings": {
+    "title": "API settings", "order": 26,
+    "action": {"type": "view", "path": "freeisp/api-settings"},
+    "depends": {"acl": ["luci-app-freeisp-ip-service-settings"]}
+  },
+  "admin/network/freeisp_ftp_settings": {
+    "title": "FTP settings", "order": 27,
+    "action": {"type": "view", "path": "freeisp/ftp-settings"},
+    "depends": {"acl": ["luci-app-freeisp-ip-service-settings"]}
+  }
+}

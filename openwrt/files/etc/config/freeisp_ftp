@@ -1,0 +1,7 @@
+config service 'main'
+	option enabled '0'
+	option port '21'
+	option listen_address '0.0.0.0'
+	option passive_min_port '50000'
+	option passive_max_port '50009'
+	option passive_address ''

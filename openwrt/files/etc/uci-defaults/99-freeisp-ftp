@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+# Use one supervised FTP instance; package installation otherwise enables its
+# own daemon with the package defaults.
+/etc/init.d/vsftpd disable
+/etc/init.d/vsftpd stop || true
+uci set vsftpd.global.disabled='1'
+uci commit vsftpd
+/etc/init.d/freeisp-ftp enable
+exit 0
