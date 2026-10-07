@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "branch": "codex/release-review",
   "build": {
     "configuration": "Release x64 net48",
@@ -40,9 +40,10 @@
     "Real deployed-router integration and every management feature were not tested in this isolated desktop task.",
     "No native executable auto-updater is included.",
     "Windows may retain the icon of an old pinned shortcut until it is pinned again from the new executable.",
-    "Combined 0.2.4 real-router Tools ping test was not rerun: disposable loopback router port 18940 was unavailable. Native button presence and connection helper were verified locally."
+    "Combined 0.2.5 real-router Tools ping test was not rerun: disposable loopback router port 18940 was unavailable. Native button presence and connection helper were verified locally.",
+    "The readiness check detects common LuCI view content and bounded loading; it is not proof that every backend operation works. It never automatically retries or resubmits router configuration."
   ],
-  "executable_sha256": "2db5a253e5fd65be36b9282255f3256302004da3615c5c9c87f2a631080a27b2",
+  "executable_sha256": "d8a61700e8e7c392071a0bae80777f1dd93d914510365c977842ece462d9da08",
   "merged_sources": [
     "16f9c080e9321a64efaf9834bdb8955849e95d0d",
     "fd299f0"
@@ -71,5 +72,22 @@
       "theme_saved": true
     },
     "url": "https://freeisp-desk.local/index.html"
-  }
+  },
+  "readiness_recovery_fixture": {
+    "passed": true,
+    "checks": {
+      "stuck_view_timeout": true,
+      "stuck_asset_cached": true,
+      "fresh_retry_rendered": true,
+      "same_revision_cache_bypassed_once": true,
+      "login_cookie_preserved": true,
+      "repaired_asset_reused": true,
+      "superseded_watchdog_ignored": true,
+      "stalled_navigation_timeout": true,
+      "cancelled_completion_ignored": true
+    },
+    "production_deadline_seconds": 30,
+    "test_deadline_milliseconds": 1800
+  },
+  "base_release": "94d63e4"
 }
