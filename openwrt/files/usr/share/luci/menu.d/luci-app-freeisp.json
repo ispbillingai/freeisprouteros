@@ -1,4 +1,10 @@
 {
+  "admin/network/freeisp_queues": {
+    "title": "FreeISP Queues",
+    "order": 7,
+    "action": {"type": "view", "path": "freeisp/queues"},
+    "depends": {"acl": ["luci-app-freeisp-queues"]}
+  },
   "admin/freeisp": {
     "title": "FreeISP",
     "order": 1,

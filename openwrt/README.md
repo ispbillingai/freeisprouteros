@@ -25,6 +25,58 @@ SQM interface shaping; per-host traffic accounting (nlbwmon); diagnostics;
 system/kernel logs; package management; backup/restore/firmware tools; authenticated commands.
 Installed does not mean every protocol has been integration-tested or configured.
 
+## Queue List
+
+The Queues menu opens four reference-style tabs. **Interface Queues** manages real
+SQM configuration: add, edit, enable/disable and remove queues, review the pending
+changes, then apply with LuCI's connection check and rollback. Rates are whole
+kbit/s; zero disables shaping in that direction. Enabled queues enable SQM at boot.
+The editor rejects duplicate enabled queues on one interface, unavailable devices,
+invalid rates and missing queue types/scripts. It preserves advanced SQM options
+when editing the basic fields. The existing SQM editor remains available for
+advanced options and service setup.
+
+The page reads queue types and scripts from the router, and polls kernel queue
+observations every five seconds. Observed upload queues, CAKE rates and byte
+counters are separate from configured settings; failed reads show unknown status.
+This view does not verify download enforcement or measure end-to-end throughput.
+Pending external changes and concurrent edits block applying stale settings.
+Read-only users can inspect queues; the write ACL is restricted to SQM settings
+and enabling its boot service.
+
+**Simple Queues and Queue Tree remain unavailable**: per-IP/subscriber limits,
+dynamic PPPoE/hotspot queues, hierarchical classification and counter reset need
+additional backend work. The tabs say so and do not expose simulated actions.
+Queue Types lists available/configured disciplines; it does not create kernel
+queue implementations.
+
+Local checks:
+
+```
+node tools/openwrt/test-queues.cjs
+node tools/openwrt/test-queues-ui.cjs
+```
+
+The browser checks require Node 20+ and Playwright. Set
+`FREEISP_BROWSER_CHANNEL=msedge` to use installed Edge.
+For real integration tests, use **only a disposable local OpenWrt VM** and set
+`FREEISP_QUEUE_TEST_DISPOSABLE=yes`, `FREEISP_QUEUE_TEST_URL`, and
+`FREEISP_QUEUE_TEST_CREDENTIALS` (a private JSON file containing `password`).
+Run `tools/openwrt/test-queues-router.cjs` through Node for real LuCI actions,
+invalid inputs, reboot persistence, removal and connection failure/recovery.
+Run `tools/openwrt/test-queues-packets.py` on the QEMU host for local packet
+traffic and restricted-account ACL checks. Its local witness listens on port
+18992, which the guest reaches at 10.0.2.2. These tests require an isolated test
+administrator allowed to execute preparation/reboot commands; never ship the
+test harness's broader permissions in a product image. Results and screenshots
+go under ignored `artifacts/tests/`. See `reports/queues-validation.json` for
+the recorded validation scope and limitations.
+
+SQM field semantics follow the
+[upstream LuCI SQM view](https://github.com/openwrt/luci/blob/openwrt-25.12/applications/luci-app-sqm/htdocs/luci-static/resources/view/network/sqm.js).
+
+## Remaining platform work
+
 PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
 AP controller and the dashboard compatibility contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif

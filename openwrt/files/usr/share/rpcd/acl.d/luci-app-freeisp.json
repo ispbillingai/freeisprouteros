@@ -1,4 +1,21 @@
 {
+  "luci-app-freeisp-queues": {
+    "description": "Manage FreeISP SQM queues and read kernel queue status",
+    "read": {
+      "uci": ["sqm"],
+      "file": {
+        "/var/run/sqm/available_qdiscs": ["list"],
+        "/usr/lib/sqm": ["list"],
+        "/sbin/tc -s -j qdisc show": ["exec"]
+      },
+      "ubus": {"file": ["list", "exec"], "luci-rpc": ["getNetworkDevices"], "uci": ["get", "changes"]}
+    },
+    "write": {
+      "uci": ["sqm"],
+      "file": {"/etc/init.d/sqm enable": ["exec"]},
+      "ubus": {"file": ["exec"], "uci": ["add", "set", "delete", "order", "apply", "confirm", "revert"]}
+    }
+  },
   "luci-app-freeisp": {
     "description": "FreeISP Quick Set network configuration",
     "read": {
