@@ -63,7 +63,7 @@ uci set uhttpd.main.rfc1918_filter='1'
 for theme in freeisp freeisp-night; do
     mkdir -p "/usr/share/ucode/luci/template/themes/$theme"
     cp -a /usr/share/ucode/luci/template/themes/bootstrap/. "/usr/share/ucode/luci/template/themes/$theme/"
-    sed -i 's@</head>@<script defer src="/luci-static/freeisp/navigation.js?v=day-night-1"></script></head>@' "/usr/share/ucode/luci/template/themes/$theme/header.ut"
+    sed -i 's@</head>@<script defer src="/luci-static/freeisp/navigation.js?v=day-night-2"></script></head>@' "/usr/share/ucode/luci/template/themes/$theme/header.ut"
     for asset in mobile.css logo.svg logo_48.png; do
         ln -sf "../bootstrap/$asset" "/www/luci-static/$theme/$asset"
     done

@@ -1,5 +1,10 @@
 /* FreeISP navigation; underlying settings are the original LuCI views. */
 (function() {
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(function(link) {
+        if (/\/freeisp(?:-night)?\/cascade\.css/.test(link.href)) {
+            var url = new URL(link.href); url.searchParams.set('freeisp','day-night-2'); link.href = url.href;
+        }
+    });
     var theme;
     try { theme = localStorage.getItem('freeisp-theme'); } catch(e) {}
     if (theme === 'day' || theme === 'night') document.documentElement.dataset.freeispTheme = theme;

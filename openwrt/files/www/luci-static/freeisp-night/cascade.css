@@ -1,2 +1,2 @@
-@import url('/luci-static/freeisp/cascade.css');
+@import url('/luci-static/freeisp/cascade.css?freeisp=day-night-2');
 :root:not([data-freeisp-theme=day]){color-scheme:dark;--fi-bg:#0c1d29;--fi-panel:#142b3a;--fi-input:#1b3545;--fi-text:#e7f3f8;--fi-muted:#a0bdce;--fi-line:#2c495b;--fi-accent:#39e0d3;--fi-tint:#163f46;--fi-rail:#081923;--fi-button:#39e0d3;--fi-button-text:#082631}
