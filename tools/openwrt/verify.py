@@ -45,7 +45,7 @@ class Router:
             headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(request, timeout=60) as response:
             value = json.load(response)
-        result = value.get('result', [value.get('error')])
+        result = value.get('result', [value.get('error', {}).get('code', -1)])
         if required and result[0] != 0:
             raise RuntimeError(f'{obj}.{method} failed: {result}')
         return result[1] if len(result) > 1 else result[0]
