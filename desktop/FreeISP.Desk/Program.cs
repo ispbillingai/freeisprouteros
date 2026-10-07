@@ -42,7 +42,7 @@ namespace FreeISP.Desk {
   }
   [MethodImpl(MethodImplOptions.NoInlining)] static void Launch(){Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new DeskWindow());}
  }
- public class RouterEntry { public string name {get;set;} public string address {get;set;} public string username {get;set;} public string source {get;set;} }
+ public class RouterEntry { public string name {get;set;} public string address {get;set;} public string username {get;set;} public string source {get;set;} public string protectedPassword {get;set;} }
  internal sealed partial class DeskWindow:Form {
   const string Hub="https://freeisp-desk.local/index.html";
   readonly WebView2 browser=new WebView2{Dock=DockStyle.Fill,DefaultBackgroundColor=Color.FromArgb(243,248,251)};
@@ -101,21 +101,23 @@ namespace FreeISP.Desk {
   async Task RunSelfTest(bool navigationSucceeded){
    try{
     var checks=new Dictionary<string,bool>();checks["offline_navigation"]=navigationSucceeded;
-    checks["asset_cache_guards"]=RouterAssetCache.SelfTest(Path.Combine(data,"SelfTestCache"));checks["windows_app_identity"]=Program.Identity()==Program.AppIdentity;checks["original_icon"]=Icon!=null;checks["local_shell"]=controls.Visible;checks["router_tools_button"]=controls.Controls.OfType<Button>().Any(b=>b.Text=="Router Tools");
+    checks["local_password_protection"]=LocalPassword.SelfTest();checks["asset_cache_guards"]=RouterAssetCache.SelfTest(Path.Combine(data,"SelfTestCache"));checks["windows_app_identity"]=Program.Identity()==Program.AppIdentity;checks["original_icon"]=Icon!=null;checks["local_shell"]=controls.Visible;checks["router_tools_button"]=controls.Controls.OfType<Button>().Any(b=>b.Text=="Router Tools");
     string rendered="false";
     for(int attempt=0;attempt<20&&rendered!="true";attempt++){rendered=await browser.CoreWebView2.ExecuteScriptAsync("!!document.querySelector('#connection') && !!document.querySelector('#scan') && !!window.chrome.webview && document.querySelector('.original-logo').naturalWidth>0 && getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)' && !document.querySelector('#connect').disabled");if(rendered!="true")await Task.Delay(100);}
     checks["offline_hub_and_logo"]=rendered=="true";
     if(File.Exists(Path.Combine(data,"self-test.marker"))){
-     checks["saved_router_survives_restart"]=ReadRouters().Any(r=>r.name=="Offline test router"&&r.address=="https://192.0.2.1/");
+     checks["saved_password_survives_restart"]=ReadRouters().Any(r=>r.address=="https://192.0.2.1/"&&LocalPassword.Open(r.protectedPassword,r.address,r.username)=="fixture-password");checks["saved_router_survives_restart"]=ReadRouters().Any(r=>r.name=="Offline test router"&&r.address=="https://192.0.2.1/");
      checks["theme_survives_restart"]=await browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.dataset.theme === 'night'")=="true";
     }
     checks["address_valid"]=Address("192.168.1.1").AbsoluteUri=="https://192.168.1.1/"&&Address("http://127.0.0.1:8874").Port==8874;
     bool rejected=true;foreach(var input in new[]{"ftp://router","https://user:password@router","https://freeisp-desk.local",""}){try{Address(input);rejected=false;}catch{}}
     checks["invalid_addresses_rejected"]=rejected;
     foreach(var check in await RouterConnection.SelfTest())checks["connection_"+check.Key]=check.Value;
-    var list=new List<RouterEntry>{new RouterEntry{name="Offline test router",address="https://192.0.2.1/",username="root",source="Saved"}};
+    var list=new List<RouterEntry>{new RouterEntry{name="Offline test router",address="https://192.0.2.1/",username="root",source="Saved",protectedPassword=LocalPassword.Seal("fixture-password","https://192.0.2.1/","root")}};
     File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));checks["saved_router_round_trip"]=ReadRouters().Single().address==list[0].address;
-    await Send(new{type="routers",routers=ReadRouters()});await Task.Delay(100);
+    checks["saved_password_encrypted_on_disk"]=!File.ReadAllText(Path.Combine(data,"routers.json")).Contains("fixture-password")&&LocalPassword.Open(ReadRouters().Single().protectedPassword,list[0].address,"root")=="fixture-password";
+    checks["saved_password_not_sent_to_hub"]=!json.Serialize(PublicRouters()).Contains("protectedPassword")&&!json.Serialize(PublicRouters()).Contains("fixture-password");
+    await Send(new{type="routers",routers=PublicRouters()});await Task.Delay(100);
     checks["saved_router_rendered"]=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#routers').textContent.includes('Offline test router')")=="true";
     checks["theme_saved"]=await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#night').click();localStorage.getItem('freeisp-desk-theme') === 'night' && document.documentElement.dataset.theme === 'night'")=="true";
     if(routerSelfTest){
@@ -167,6 +169,7 @@ namespace FreeISP.Desk {
   }
   void ShowHub(){if(closing)return;navigationGeneration++;preparingNavigation=false;navigating=false;approvedNavigation=null;assetCache=null;bypassPageCache=false;busy=false;browser.CoreWebView2.Stop();ShowProgress("Your local workspace","Opening saved routers and connection tools…");browser.CoreWebView2.Navigate(Hub);}
   Task Send(object message){if(IsHub(browser.Source))browser.CoreWebView2.PostWebMessageAsJson(json.Serialize(message));return Task.CompletedTask;}
+  object[] PublicRouters(){return ReadRouters().Select(r=>(object)new{name=r.name,address=r.address,username=r.username,source=r.source,hasPassword=!string.IsNullOrEmpty(r.protectedPassword)}).ToArray();}
   List<RouterEntry> ReadRouters(){try{return json.Deserialize<List<RouterEntry>>(File.ReadAllText(Path.Combine(data,"routers.json")))??new List<RouterEntry>();}catch{return new List<RouterEntry>();}}
   public static Uri Address(string text){Uri u;text=(text??"").Trim();if(!text.Contains("://"))text="https://"+text;if(!Uri.TryCreate(text,UriKind.Absolute,out u)||(u.Scheme!="https"&&u.Scheme!="http")||string.IsNullOrEmpty(u.Host)||u.UserInfo.Length>0||u.Host=="freeisp-desk.local")throw new Exception("Enter a valid HTTP or HTTPS router address without credentials.");return new Uri(u.GetLeftPart(UriPartial.Authority));}
   async void HandleMessage(object sender,CoreWebView2WebMessageReceivedEventArgs args){
@@ -175,23 +178,27 @@ namespace FreeISP.Desk {
     var m=json.Deserialize<Dictionary<string,object>>(args.WebMessageAsJson);
     string action=Convert.ToString(m["action"]);
     if(action=="discover"){await Discover();return;}
-    if(action=="remove"){var list=ReadRouters();list.RemoveAll(r=>r.address==Convert.ToString(m["address"]));File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));await Send(new{type="routers",routers=list});return;}
+    if(action=="remove"){var list=ReadRouters();list.RemoveAll(r=>r.address==Convert.ToString(m["address"]));File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));await Send(new{type="routers",routers=PublicRouters()});return;}
     if(action!="connect"||busy)return;
     var address=Address(Convert.ToString(m["address"]));var username=Convert.ToString(m["username"]);var password=Convert.ToString(m["password"]);
+    if(string.IsNullOrEmpty(password)&&m.ContainsKey("useSavedPassword")&&Convert.ToBoolean(m["useSavedPassword"])){
+     var saved=ReadRouters().FirstOrDefault(r=>r.address==address.AbsoluteUri&&r.username==username);
+     if(saved!=null)password=LocalPassword.Open(saved.protectedPassword,address.AbsoluteUri,username);
+    }
     if(string.IsNullOrWhiteSpace(username)||string.IsNullOrEmpty(password))throw new Exception("Enter your router username and password.");
     busy=true;await Send(new{type="status",message="Signing in…",busy=true});
     // Authenticate without following redirects so credentials can only reach the chosen origin.
-    string cookie=await RouterConnection.Authenticate(address,username,password);password=null;
+    string cookie=await RouterConnection.Authenticate(address,username,password);
     string cookieName=address.Scheme=="https"?"sysauth_https":"sysauth_http";
     var session=browser.CoreWebView2.CookieManager.CreateCookie(cookieName,cookie,address.Host,"/cgi-bin/luci/");
       session.IsHttpOnly=true;session.IsSecure=address.Scheme=="https";session.SameSite=CoreWebView2CookieSameSiteKind.Strict;
       browser.CoreWebView2.CookieManager.AddOrUpdateCookie(session);
     if(m.ContainsKey("remember")&&Convert.ToBoolean(m["remember"])){
      var list=ReadRouters();list.RemoveAll(r=>r.address==address.AbsoluteUri);
-     list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved"});
+     list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved",protectedPassword=LocalPassword.Seal(password,address.AbsoluteUri,username)});
      File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));
     }
-    router=address;await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp"));
+    password=null;router=address;await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp"));
    }catch(Exception ex){await Send(new{type="status",message=ex is TaskCanceledException?"Connection timed out. Check the router or SSH tunnel.":ex is HttpRequestException?"Connection failed. Check the address, tunnel and HTTPS certificate.":ex.Message,busy=false});}finally{busy=false;}
   }
   public static bool Private(IPAddress ip){var b=ip.GetAddressBytes();return b.Length==4&&(b[0]==10||(b[0]==192&&b[1]==168)||(b[0]==172&&b[1]>=16&&b[1]<=31));}

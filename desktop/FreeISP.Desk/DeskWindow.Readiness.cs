@@ -50,7 +50,7 @@ namespace FreeISP.Desk {
     if(!IsHub(browser.Source)){if(cacheTest){navigating=false;await CheckBrowserCache();}return;}
     RevealPage();
     if(selfTest&&!readinessTest&&!liveRouterTest){await Task.Delay(400);if(CurrentNavigation(generation,id))await RunSelfTest(args.IsSuccess);return;}
-    await Send(new{type="routers",routers=ReadRouters()});
+    await Send(new{type="routers",routers=PublicRouters()});
    }catch(Exception ex){if(CurrentNavigation(generation,id)){navigating=false;ShowProgress("Interface unavailable","The page could not finish opening. "+ex.Message,true);}}
   }
 

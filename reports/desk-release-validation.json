@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "branch": "codex/release-review",
   "build": {
     "configuration": "Release x64 net48",
@@ -41,7 +41,7 @@
     "Old pinned shortcuts may retain an old icon until repinned.",
     "Physical WiFi cannot be tested on the VPS."
   ],
-  "executable_sha256": "c3e53da298460e8170f289eb065ea850e001d63e416cf0f0229ed8d7f5eee6b3",
+  "executable_sha256": "a5886741b669b185759c76a651398411157a57f0432643b6f69d810592e9255e",
   "merged_sources": [
     "16f9c080e9321a64efaf9834bdb8955849e95d0d",
     "fd299f0"
@@ -50,12 +50,14 @@
     "passed": true,
     "checks": {
       "offline_navigation": true,
+      "local_password_protection": true,
       "asset_cache_guards": true,
       "windows_app_identity": true,
       "original_icon": true,
       "local_shell": true,
       "router_tools_button": true,
       "offline_hub_and_logo": true,
+      "saved_password_survives_restart": true,
       "saved_router_survives_restart": true,
       "theme_survives_restart": true,
       "address_valid": true,
@@ -66,6 +68,8 @@
       "connection_redirect": true,
       "connection_connection_refused": true,
       "saved_router_round_trip": true,
+      "saved_password_encrypted_on_disk": true,
+      "saved_password_not_sent_to_hub": true,
       "saved_router_rendered": true,
       "theme_saved": true
     },
@@ -96,7 +100,16 @@
   "deployed_router_login_test": {
     "passed": true,
     "hubLogin": true,
+    "savedPasswordReconnect": true,
     "quickSetRendered": true,
     "loadingDismissed": true
+  },
+  "local_password_storage": {
+    "method": "Windows DPAPI CurrentUser",
+    "bound_to": "exact router origin and username",
+    "cleartext_saved": false,
+    "secret_sent_to_hub": false,
+    "restart_verified": true,
+    "live_saved_reconnect_verified": true
   }
 }

@@ -1,12 +1,21 @@
 # FreeISP Desk for Windows — Device Hub
 
-Version 0.2.6 keeps a branded local window around the management workspace,
+Version 0.2.7 keeps a branded local window around the management workspace,
 with the original FreeISP taskbar/window icon, an immediate loading surface,
 retry and Device Hub controls. The stable Windows application identity is
 `FreeISP.Desk`. Day/Night themes, login, saved routers and gateway discovery
 remain in the bundled Device Hub. Router Tools opens the connected router’s
 [Tools workspace](../openwrt/TOOLS.md). The shared connection helper rejects
 empty sessions and validates login without following redirects.
+
+Version 0.2.7 saves passwords when “Remember this router and password” is
+selected after a successful login. Windows DPAPI protects each password for
+the current Windows account, bound to the exact router address and username.
+Only the native connection code decrypts it; the Hub receives a saved-password
+flag, never the stored secret. Selecting a saved router allows Connect without
+retyping. Editing its address or username requires entering the password again.
+Forget removes the saved entry and encrypted password. Existing entries need
+one successful login with Remember selected to store their password.
 
 Version 0.2.6 keeps WebView visible beneath the opaque loading panel. Hiding
 the control pauses animation-frame callbacks used by LuCI and could prevent
