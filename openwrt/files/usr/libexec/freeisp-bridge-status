@@ -1,0 +1,14 @@
+#!/bin/sh
+# Fixed read-only bridge queries. No caller arguments or shell input are used.
+[ "$#" -eq 0 ] || exit 2
+. /usr/share/libubox/jshn.sh
+json_init
+for query in link fdb vlan; do
+    output=$(/usr/sbin/bridge -j -d -s "$query" show 2>/dev/null)
+    code=$?
+    json_add_object "$query"
+    json_add_int code "$code"
+    json_add_string output "$output"
+    json_close_object
+done
+json_dump

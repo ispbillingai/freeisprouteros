@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var activeAssigned = false;
     var entries = [
         ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'],
-        ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/network'],
+        ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/freeisp_bridge'],
         ['PPP clients', 'network/network'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'],
         ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],

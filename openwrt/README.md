@@ -19,6 +19,10 @@ Feed package versions can change; each image records its installed manifest and 
 
 ## What is provided
 
+The dedicated [Bridge workspace](BRIDGE.md) provides bridge, port, VLAN and
+learned-host controls and telemetry, with local drafts and confirmed apply.
+See its validation notes for the exact tested scope and remaining checks.
+
 LuCI interface/device/bridge/VLAN controls; DHCP/DNS; firewall/NAT/port forwarding;
 static routing; PPPoE **client** support; WireGuard protocol configuration;
 SQM interface shaping; per-host traffic accounting (nlbwmon); diagnostics;

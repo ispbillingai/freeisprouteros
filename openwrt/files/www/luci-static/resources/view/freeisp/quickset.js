@@ -59,7 +59,7 @@ return view.extend({
                     row('Router IP',input('lanIP',lanIP)),row('Netmask',input('lanMask',lanMask)),
                     check('dhcp','DHCP server',uci.get('dhcp','lan','ignore')!=='1'),
                     row('DHCP range',input('range',range)),check('nat','NAT',!!zone && zone.masq==='1',!zone),
-                    E('div',{'class':'qs-end'},[link('Port mapping →',['network','firewall','forwards']),link('Bridge / VLAN →',['network','network'])])
+                    E('div',{'class':'qs-end'},[link('Port mapping →',['network','firewall','forwards']),link('Bridge / VLAN →',['network','freeisp_bridge'])])
                 ]),
                 section('03 / Wireless',[
                     E('div',{'class':'qs-empty-state'},[E('div',{},[E('strong',{},'No radio detected'),E('p',{},'Wireless is unavailable on this virtual router.')])]),

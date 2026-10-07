@@ -1,0 +1,8 @@
+{
+  "admin/network/freeisp_bridge": {
+    "title": "FreeISP Bridge",
+    "order": 6,
+    "action": {"type": "view", "path": "freeisp/bridge"},
+    "depends": {"acl": ["luci-app-freeisp-bridge"]}
+  }
+}

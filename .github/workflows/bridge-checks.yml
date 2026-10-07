@@ -1,0 +1,37 @@
+name: FreeISP Bridge checks
+on:
+  push:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/bridge-checks.yml']
+  pull_request:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/bridge-checks.yml']
+permissions:
+  contents: read
+jobs:
+  bridge:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bridge overlay
+        run: |
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/bridge.js
+          node tools/openwrt/test-bridge.cjs
+          node tools/openwrt/test-quickset.cjs
+          sh -n openwrt/files/usr/libexec/freeisp-bridge-status
+          sh -n tools/openwrt/bridge-test-image.sh
+          sh -n tools/openwrt/test-bridge-backend.sh
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-bridge.json > /dev/null
+          python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-bridge.json > /dev/null
+      - name: Install browser test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/bridge-browser" --no-package-lock playwright@1.62.1
+          "$RUNNER_TEMP/bridge-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Exercise bridge view and failure paths
+        run: NODE_PATH="$RUNNER_TEMP/bridge-browser/node_modules" node tools/openwrt/test-bridge-ui.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bridge-browser-tests
+          path: artifacts/tests/bridge/

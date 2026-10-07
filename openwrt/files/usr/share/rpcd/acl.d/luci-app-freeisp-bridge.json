@@ -1,0 +1,11 @@
+{
+  "luci-app-freeisp-bridge": {
+    "description": "FreeISP bridge configuration and read-only forwarding database",
+    "read": {
+      "uci": ["network"],
+      "ubus": {"network.device": ["status"], "file": ["exec"]},
+      "file": {"/usr/libexec/freeisp-bridge-status": ["exec"]}
+    },
+    "write": {"uci": ["network"]}
+  }
+}

@@ -8,5 +8,6 @@ luci-app-nlbwmon
 luci-app-commands
 luci-proto-wireguard
 ip-full
+ip-bridge
 tcpdump-mini
 curl
