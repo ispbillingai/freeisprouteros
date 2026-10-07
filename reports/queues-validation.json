@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-07",
+  "branch": "codex/queue-management",
+  "base_commit": "2952170",
+  "review": "Self-reviewed source, scoped permissions, failure states and targeted writes; isolated Git worktree.",
+  "platform": "OpenWrt 25.12.5 x86/64, disposable local QEMU/KVM VM",
+  "source_sha256": {
+    "openwrt/files/www/luci-static/resources/view/freeisp/queues.js": "9228b7333d513523e6c1ca439377bf15e2dc4abeb3c463f8935e79923539a287",
+    "openwrt/files/www/luci-static/resources/freeisp/queues-data.js": "4e2350871163b2fc300c832cf6ed0f121156da8a1f8a93bb6ca6328730a3624e",
+    "openwrt/files/www/luci-static/resources/freeisp/queues.css": "47649baafa7b7893585fedbbe9bc8a2b1ac237f8d15e0a74c29de1c50ee296ce",
+    "openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp.json": "1d30429a260fa66b2bd6e168a0b36d61727916ef903a1b7b0d98c819051ca32f",
+    "openwrt/files/usr/share/luci/menu.d/luci-app-freeisp.json": "e5564eeefcb042dc417dd1e9bcf10adcf9b5e40202866b06e2cb415fea460b8e"
+  },
+  "queue_unit_tests": "passed",
+  "queue_browser_fixture": {
+    "passed": true,
+    "router": "local mocked RPC only",
+    "pageErrors": []
+  },
+  "real_luci_integration": {
+    "checks": {
+      "real_page_loaded": true,
+      "invalid_rate_did_not_write": true,
+      "draft_did_not_write": true,
+      "add_applied_upload_and_download_shapers": true,
+      "edit_applied": true,
+      "settings_and_shaper_survived_reboot": true,
+      "disable_removed_shaper": true,
+      "remove_persisted": true,
+      "network_configuration_preserved": true,
+      "existing_sqm_preserved": true,
+      "connection_failure_visible": true,
+      "connection_recovered": true
+    },
+    "pageErrors": []
+  },
+  "packets_and_acl": {
+    "traffic_crossed_both_shapers": true,
+    "512_KiB_upload_seconds_including_rpc": 4.44,
+    "512_KiB_download_seconds_including_rpc": 2.183,
+    "upload_counter_bytes": 585339,
+    "download_counter_bytes": 873979,
+    "read_only_acl_reads_status_and_denies_writes": true,
+    "writer_acl_applies_queue_and_denies_network_changes": true
+  },
+  "desktop": {
+    "build": "dotnet Release: 0 warnings, 0 errors, cached dependencies",
+    "offline_self_test": {
+      "passed": true,
+      "url": "https://freeisp-desk.local/index.html",
+      "bridge": true,
+      "logo": true
+    },
+    "method": "Fresh executable built from worktree; embedded hub and logo rendered with external WebView requests blocked; no router login was used. Desktop source was unchanged."
+  },
+  "regressions": {
+    "existing_linux_configuration_and_recovery_tests": "7 passed under Linux; no skips",
+    "quick_set_validation": "passed",
+    "network_configuration_preserved": true,
+    "existing_sqm_configuration_preserved": true
+  },
+  "limitations": [
+    "Simple Queues, Queue Tree, dynamic subscriber queues and counter reset are not implemented.",
+    "The page observes upload kernel qdiscs and counters; it does not verify download enforcement in its status UI. Both directions were verified separately in the disposable VM.",
+    "Transfer timings include RPC overhead and are not precision throughput benchmarks.",
+    "Full firmware image rebuild, physical hardware and production deployment were not tested. The overlay was tested on the existing 25.12.5 image.",
+    "The initial software-emulated VM failed to return from reboot; the KVM run passed twice."
+  ],
+  "deployment": "No production deployment; feature branch only",
+  "source_hash_normalization": "UTF-8 source text with LF line endings"
+}

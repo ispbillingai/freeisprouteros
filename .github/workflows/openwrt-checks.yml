@@ -20,6 +20,9 @@ jobs:
           node --check openwrt/files/www/luci-static/resources/view/freeisp/overview.js
           node --check openwrt/files/www/luci-static/resources/view/freeisp/quickset.js
           node --check openwrt/files/www/luci-static/resources/view/freeisp/files.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/queues.js
+          node --check openwrt/files/www/luci-static/resources/freeisp/queues-data.js
+          node tools/openwrt/test-queues.cjs
           node tools/openwrt/test-quickset.cjs
           python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/freeisp/navigation.js

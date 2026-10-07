@@ -32,13 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
         ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'],
         ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/network'],
         ['PPP clients', 'network/network'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'],
-        ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues / SQM', 'network/sqm'],
+        ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],
-<<<<<<< HEAD
-        ['System', 'system/system'], ['Files / Backups', 'system/flash'], ['Log', 'status/freeisp_log'],
-=======
-        ['System', 'system/system'], ['Files', 'system/freeisp_files'], ['Log', 'status/syslog'],
->>>>>>> dc9fe07 (Add persistent router Files manager with scoped access and tests)
+        ['System', 'system/system'], ['Files', 'system/freeisp_files'], ['Log', 'status/freeisp_log'],
         ['Tools', 'network/diagnostics'], ['Commands', 'system/commands'], ['Software', 'system/package-manager'], ['Logout', 'logout']
     ];
     entries.forEach(function(item) {
