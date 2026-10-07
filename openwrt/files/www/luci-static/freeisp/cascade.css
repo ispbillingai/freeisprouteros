@@ -1,0 +1,11 @@
+/* FreeISP additions. Upstream LuCI Bootstrap retains its own Apache-2.0 license. */
+@import url('/luci-static/bootstrap/cascade.css');
+:root{color-scheme:light;--primary-color-high:#136a50;--primary-color-medium:#158664;--primary-color-low:#e8f3ed}
+html,body{background:#f3f6f4!important;color:#193b30!important;font-family:system-ui,-apple-system,sans-serif}
+header{background:#123f32!important;box-shadow:0 2px 12px #09291d26}
+header .brand{color:#fff!important;font-size:24px!important;letter-spacing:-.8px;font-weight:750}
+header .brand:after{content:' / router';font-size:12px;letter-spacing:.8px;font-weight:400;color:#acd8c4}
+header .nav>li>a{color:#e9f4ed!important}header .nav>li.active>a{background:#23654d!important}
+#maincontent{max-width:1440px;padding-top:24px}.cbi-section{border-radius:10px;border-color:#d7e4dc!important;background:#fff!important}
+h2{font-weight:700;letter-spacing:-.5px}.cbi-button-positive,.cbi-button-apply,.cbi-button-save{background:#176b4e!important;border-color:#176b4e!important;color:white!important}
+.freeisp-intro{padding:22px 26px;border-radius:12px;background:#123f32;color:#fff;margin:0 0 24px}.freeisp-intro h2,.freeisp-intro p{color:#fff}.freeisp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.freeisp-tile{display:block;padding:22px;border:1px solid #dae6df;border-radius:10px;background:white;color:#204c3a}.freeisp-tile strong{display:block;font-size:17px;margin-bottom:8px}.freeisp-tile p{margin:0;color:#5a7366;line-height:1.5}.freeisp-note{padding:16px;border-left:3px solid #176b4e;margin:22px 0;line-height:1.7}

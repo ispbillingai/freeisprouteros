@@ -1,0 +1,8 @@
+{
+  "admin/freeisp": {
+    "title": "FreeISP",
+    "order": 1,
+    "action": {"type": "view", "path": "freeisp/overview"},
+    "depends": {"acl": ["luci-mod-status-index"]}
+  }
+}

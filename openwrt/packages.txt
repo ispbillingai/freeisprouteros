@@ -1,0 +1,11 @@
+luci
+luci-ssl
+luci-theme-bootstrap
+luci-theme-openwrt-2020
+luci-app-sqm
+luci-app-nlbwmon
+luci-app-commands
+luci-proto-wireguard
+ip-full
+tcpdump-mini
+curl

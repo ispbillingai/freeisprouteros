@@ -1,0 +1,84 @@
+#!/bin/sh
+# FreeISP x86 VM profile. Physical hardware needs its own verified port mapping.
+set -eu
+for role in wan lan management; do
+    case "$role" in wan) suffix=01;; lan) suffix=02;; management) suffix=03;; esac
+    port=''
+    for address in /sys/class/net/*/address; do
+        if [ "$(cat "$address")" = "52:54:00:f1:00:$suffix" ]; then
+            port=${address%/address}; port=${port##*/}
+        fi
+    done
+    [ -n "$port" ] || { logger -t freeisp 'Missing assigned VM adapter'; exit 1; }
+    case "$role" in wan) WAN=$port;; lan) LAN=$port;; management) MANAGEMENT=$port;; esac
+done
+[ -s /etc/freeisp/root.hash ] || exit 1
+awk 'NR==FNR { hash=$0; next } BEGIN { FS=OFS=":" } $1=="root" {$2=hash} {print}' /etc/freeisp/root.hash /etc/shadow > /etc/shadow.freeisp
+chmod 600 /etc/shadow.freeisp
+mv /etc/shadow.freeisp /etc/shadow
+rm /etc/freeisp/root.hash
+
+cat > /etc/config/network <<EOF
+config interface 'loopback'
+ option device 'lo'
+ option proto 'static'
+ option ipaddr '127.0.0.1'
+ option netmask '255.0.0.0'
+config device
+ option name 'br-lan'
+ option type 'bridge'
+ list ports '$LAN'
+config interface 'lan'
+ option device 'br-lan'
+ option proto 'static'
+ option ipaddr '10.77.0.1'
+ option netmask '255.255.255.0'
+config interface 'wan'
+ option device '$WAN'
+ option proto 'dhcp'
+config interface 'management'
+ option device '$MANAGEMENT'
+ option proto 'static'
+ option ipaddr '10.78.0.15'
+ option netmask '255.255.255.0'
+EOF
+uci set system.@system[0].hostname='FreeISP'
+uci set system.@system[0].zonename='UTC'
+uci set system.@system[0].timezone='UTC'
+uci set dhcp.lan.start='100'
+uci set dhcp.lan.limit='100'
+uci set dhcp.lan.leasetime='30m'
+uci set dhcp.management=dhcp
+uci set dhcp.management.interface='management'
+uci set dhcp.management.ignore='1'
+uci set dhcp.freeisp=domain
+uci set dhcp.freeisp.name='freeisp.lan'
+uci set dhcp.freeisp.ip='10.77.0.1'
+# Plain HTTP is reachable only through the isolated SSH maintenance path.
+uci -q delete uhttpd.main.listen_http || true
+uci add_list uhttpd.main.listen_http='10.78.0.15:80'
+uci set uhttpd.main.redirect_https='0'
+uci set uhttpd.main.rfc1918_filter='1'
+# Keep the upstream themes, and add two FreeISP variants without editing them.
+for theme in freeisp freeisp-night; do
+    mkdir -p "/usr/share/ucode/luci/template/themes/$theme"
+    cp -a /usr/share/ucode/luci/template/themes/bootstrap/. "/usr/share/ucode/luci/template/themes/$theme/"
+    for asset in mobile.css logo.svg logo_48.png; do
+        ln -sf "../bootstrap/$asset" "/www/luci-static/$theme/$asset"
+    done
+done
+sed -i "s/const darkpref =.*/const darkpref = 'false';/" /usr/share/ucode/luci/template/themes/freeisp/header.ut
+sed -i "s/const darkpref =.*/const darkpref = 'true';/" /usr/share/ucode/luci/template/themes/freeisp-night/header.ut
+uci set luci.themes.FreeISP='/luci-static/freeisp'
+uci set luci.themes.FreeISPNight='/luci-static/freeisp-night'
+uci set luci.main.mediaurlbase='/luci-static/freeisp'
+uci set luci.main.resourcebase='/luci-static/resources'
+uci set luci.main.lang='en'
+uci set luci.command_resources=command
+uci set luci.command_resources.name='Memory and uptime'
+uci set luci.command_resources.command='/usr/bin/freeisp-resources'
+uci set luci.command_resources.param='0'
+uci set luci.command_resources.public='0'
+uci commit
+logger -t freeisp 'OpenWrt FreeISP profile installed. RADIUS excluded.'
+exit 0

@@ -1,11 +1,12 @@
 # FreeISP Router OS
 
-FreeISP is an independent Linux router project, starting with an isolated virtual
-appliance. The planned product combines its own management interface and subscriber
-controls with established Linux networking components. Laptop, small-PC and
-Raspberry Pi builds are later hardware targets, not supported installation targets yet.
+FreeISP now builds on **OpenWrt**, with its own themes, landing interface, package
+selection and future subscriber controls. This reuses OpenWrt's networking, drivers,
+LuCI configuration and recovery tools instead of developing another network stack.
+See [the active OpenWrt build](openwrt/README.md). **RADIUS is excluded.**
+Laptop, small-PC and Raspberry Pi builds are later targets; this release targets a VM.
 
-## Working Linux lab
+## Earlier Linux lab (retained for reference)
 
 The first lab boots Linux and implements IPv4 WAN DHCP, LAN DHCP/DNS, routing,
 NAT, a firewall, authenticated HTTPS management and configuration backup/restore.
@@ -23,7 +24,7 @@ Software tests are not a claim of physical hardware compatibility or ISP capacit
 
 ## Not implemented yet
 
-PPPoE, RADIUS/accounting, hotspot/vouchers, subscriber rate limits, Wi-Fi management,
+PPPoE server, hotspot/vouchers, subscriber rate limits, Wi-Fi management,
 RouterOS API compatibility, system-image updates and automatic image rollback remain
 future work. No customer should depend on this development lab for service.
 

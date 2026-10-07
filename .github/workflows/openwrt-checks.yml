@@ -1,0 +1,18 @@
+name: OpenWrt customization checks
+on:
+  push:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/openwrt-checks.yml']
+  pull_request:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/openwrt-checks.yml']
+permissions:
+  contents: read
+jobs:
+  overlay:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate scripts and menu definitions
+        run: |
+          for f in tools/openwrt/*.sh openwrt/files/etc/uci-defaults/* openwrt/files/usr/bin/*; do sh -n "$f"; done
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp.json > /dev/null
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/overview.js
