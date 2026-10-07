@@ -17,3 +17,5 @@ artifacts/
 *.key
 credentials.json
 CREDENTIALS.txt
+desktop/**/bin/
+desktop/**/obj/

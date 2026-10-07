@@ -1,0 +1,14 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const source = fs.readFileSync('openwrt/files/www/luci-static/resources/freeisp/quickset-data.js','utf8');
+const data = new Function('baseclass', source)({extend: value => value});
+const lan = data.subnet('192.168.180.1','255.255.252.0');
+assert.deepEqual(data.pool('192.168.180.5-192.168.183.254',lan),{start:5,limit:1018});
+assert.equal(data.address(lan.end),'192.168.183.255');
+for (const invalid of ['999.1.1.1','1.2.3','01.2.3.4','-1.0.0.0','1.2.3.4/24']) assert.throws(()=>data.ip(invalid));
+for (const mask of ['255.0.255.0','255.255.255.255','0.0.0.0','255.255.255.254']) assert.throws(()=>data.subnet('10.0.0.1',mask));
+assert.throws(()=>data.subnet('10.0.0.0','255.255.255.0'));
+assert.throws(()=>data.subnet('10.0.0.255','255.255.255.0'));
+for (const range of ['192.168.180.0-192.168.180.20','192.168.180.1-192.168.180.20','192.168.180.20-192.168.180.5','192.168.180.5-192.168.184.1','192.168.180.5']) assert.throws(()=>data.pool(range,lan));
+assert.deepEqual(data.pool('10.77.0.100-10.77.0.199',data.subnet('10.77.0.1','255.255.255.0')),{start:100,limit:100});
+console.log('Quick Set: IPv4, subnet and DHCP range validation passed.');

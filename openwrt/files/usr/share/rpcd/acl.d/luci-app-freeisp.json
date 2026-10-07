@@ -1,0 +1,10 @@
+{
+  "luci-app-freeisp": {
+    "description": "FreeISP Quick Set network configuration",
+    "read": {
+      "uci": ["network", "dhcp", "firewall", "system"],
+      "ubus": {"network.interface": ["dump"], "network.device": ["status"]}
+    },
+    "write": {"uci": ["network", "dhcp", "firewall", "system"]}
+  }
+}
