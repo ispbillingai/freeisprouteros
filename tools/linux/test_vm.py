@@ -19,6 +19,7 @@ PROJECT = Path(__file__).resolve().parents[2]
 OUT = PROJECT / 'artifacts/releases/freeisp-linux-lab'
 CACHE = PROJECT / 'artifacts/linux-cache'
 REPORT = PROJECT / 'reports/linux-vm-validation.json'
+REPORT.parent.mkdir(parents=True, exist_ok=True)
 checks = {}
 processes = []
 logs = []
