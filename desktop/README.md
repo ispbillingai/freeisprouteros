@@ -1,12 +1,19 @@
 # FreeISP Desk for Windows — Device Hub
 
-Version 0.2.5 keeps a branded local window around the management workspace,
+Version 0.2.6 keeps a branded local window around the management workspace,
 with the original FreeISP taskbar/window icon, an immediate loading surface,
 retry and Device Hub controls. The stable Windows application identity is
 `FreeISP.Desk`. Day/Night themes, login, saved routers and gateway discovery
 remain in the bundled Device Hub. Router Tools opens the connected router’s
 [Tools workspace](../openwrt/TOOLS.md). The shared connection helper rejects
 empty sessions and validates login without following redirects.
+
+Version 0.2.6 keeps WebView visible beneath the opaque loading panel. Hiding
+the control pauses animation-frame callbacks used by LuCI and could prevent
+the page from ever becoming ready. The regression fixture now renders through
+requestAnimationFrame; the old executable fails it and the fix passes.
+A loopback-only live test also signs in through Device Hub and verifies that
+the deployed router's Quick Set renders without changing its configuration.
 
 Version 0.2.5 waits for the router view to render instead of revealing an
 unfinished loading page after six seconds. A 30-second deadline covers both

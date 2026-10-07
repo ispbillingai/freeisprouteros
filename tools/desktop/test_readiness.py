@@ -24,7 +24,7 @@ class Fixture(http.server.BaseHTTPRequestHandler):
             kind = 'application/javascript'
             value = "window.fixtureLoaded=true;"
             if state['repaired']:
-                value += "if(!location.search.includes('stuck=1'))document.querySelector('#view').innerHTML='<h2>Router ready</h2>';"
+                value += "if(!location.search.includes('stuck=1'))requestAnimationFrame(()=>document.querySelector('#view').innerHTML='<h2>Router ready</h2>');"
         elif self.path.startswith('/cgi-bin/luci/admin/freeisp'):
             state['authenticatedHtml'] += int('desk_fixture=kept' in self.headers.get('Cookie', ''))
             if 'slow=1' in self.path:

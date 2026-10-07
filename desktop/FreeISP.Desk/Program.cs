@@ -18,7 +18,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace FreeISP.Desk {
  internal static class Program {
   internal static string Assets;
-  internal static bool IsTest { get { return Environment.GetCommandLineArgs().Any(a=>a=="--self-test"||a=="--cache-test"||a=="--readiness-test"); } }
+  internal static bool IsTest { get { return Environment.GetCommandLineArgs().Any(a=>a=="--self-test"||a=="--cache-test"||a=="--readiness-test"||a=="--live-router-test"); } }
   internal const string AppIdentity="FreeISP.Desk";
   [DllImport("shell32.dll",CharSet=CharSet.Unicode)] static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
   [DllImport("shell32.dll")] static extern int GetCurrentProcessExplicitAppUserModelID(out IntPtr appId);
@@ -85,7 +85,7 @@ namespace FreeISP.Desk {
     core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);
     core.WebResourceRequested+=(sender,args)=>{Uri uri;byte[] bytes;string type;var cache=assetCache;if(args.Request.Method!="GET"||!Uri.TryCreate(args.Request.Uri,UriKind.Absolute,out uri)||!RouterAssetCache.Allowed(router,uri))return;args.Request.Headers.SetHeader("Cache-Control","no-cache");if(cache==null||cache.Revision==null)return;args.Request.Headers.SetHeader("X-FreeISP-Desk-Revision",cache.Revision);if(!bypassPageCache&&cache.TryRead(uri,out bytes,out type))args.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(bytes),200,"OK","Content-Type: "+type+"\r\nCache-Control: no-store\r\nX-FreeISP-Desk-Cache: local\r\n");};
     core.WebResourceResponseReceived+=async(sender,args)=>{var cache=assetCache;Uri uri;if(cache==null||cache.Revision==null||args.Request.Method!="GET"||!Uri.TryCreate(args.Request.Uri,UriKind.Absolute,out uri)||!RouterAssetCache.Allowed(cache.Origin,uri)||args.Response.StatusCode!=200)return;try{if(args.Response.Headers.Contains("X-FreeISP-Desk-Cache")||!args.Request.Headers.Contains("X-FreeISP-Desk-Revision")||args.Request.Headers.GetHeader("X-FreeISP-Desk-Revision")!=cache.Revision)return;string type=args.Response.Headers.GetHeader("Content-Type");using(var stream=await args.Response.GetContentAsync()){if(stream==null)return;var pending=RouterAssetCache.LimitedRead(stream,RouterAssetCache.MaximumAssetBytes);if(await Task.WhenAny(pending,Task.Delay(5000))!=pending)return;var bytes=await pending;if(ReferenceEquals(cache,assetCache))cache.Store(uri,type,bytes);}}catch(Exception ex)when(ex is IOException||ex is ArgumentException||ex is InvalidOperationException||ex is COMException){}};
-    if(selfTest){core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||(!IsHub(u)&&!(((cacheTest||readinessTest)&&SameRouter(u))||(routerSelfTest&&u.Scheme=="http"&&u.Host=="127.0.0.1"&&u.Port==18940))))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
+    if(selfTest){core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||(!IsHub(u)&&!(((cacheTest||readinessTest||liveRouterTest)&&SameRouter(u))||(routerSelfTest&&u.Scheme=="http"&&u.Host=="127.0.0.1"&&u.Port==18940))))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
     string hubFolder=Path.Combine(Program.Assets,"Hub");
     foreach(string file in new[]{"index.html","hub.css","hub.js"})
      if(!File.Exists(Path.Combine(hubFolder,file)))throw new FileNotFoundException("A bundled app file is missing. Download FreeISP Desk again. Missing: Hub/"+file);
@@ -95,7 +95,7 @@ namespace FreeISP.Desk {
     core.NavigationStarting+=NavigationStarting;
     core.NewWindowRequested+=(sender,args)=>args.Handled=true;
     core.NavigationCompleted+=NavigationCompleted;
-    if(cacheTest||readinessTest){var argument=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--test-router="));router=Address(argument?.Substring("--test-router=".Length));if(!router.IsLoopback)throw new Exception("Browser tests require a loopback fixture.");if(readinessTest)await RunReadinessTest();else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp"));}else ShowHub();
+    if(cacheTest||readinessTest||liveRouterTest){var argument=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--test-router="));router=Address(argument?.Substring("--test-router=".Length));if(!router.IsLoopback)throw new Exception("Browser tests require a loopback fixture.");if(liveRouterTest)await RunLiveRouterTest();else if(readinessTest)await RunReadinessTest();else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp"));}else ShowHub();
    }catch(Exception ex){if(selfTest){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test-error.txt"),ex.ToString());Environment.Exit(1);}ShowProgress("Workspace could not open","Microsoft Edge WebView2 Runtime is required. "+ex.Message,true);}};
   }
   async Task RunSelfTest(bool navigationSucceeded){
@@ -153,7 +153,7 @@ namespace FreeISP.Desk {
   }
   bool SameRouter(Uri u){return router!=null&&u.Scheme==router.Scheme&&u.Authority==router.Authority;}
   Button ShellButton(string text,int left,int width){return new Button{Text=text,Left=left,Top=10,Width=width,Height=32,FlatStyle=FlatStyle.Flat,ForeColor=Color.White,BackColor=Color.FromArgb(24,62,80),Font=new Font("Segoe UI",9)};}
-  void ShowProgress(string title,string detail,bool failed=false){progressTitle.Text=title;progressDetail.Text=detail;retry.Visible=returnHub.Visible=failed&&browser.CoreWebView2!=null;loading.Visible=true;loading.BringToFront();controls.BringToFront();browser.Visible=false;}
+  void ShowProgress(string title,string detail,bool failed=false){progressTitle.Text=title;progressDetail.Text=detail;retry.Visible=returnHub.Visible=failed&&browser.CoreWebView2!=null;loading.Visible=true;loading.BringToFront();controls.BringToFront();browser.Visible=true;}
   async Task NavigateRouter(Uri target,bool bypassCache=false){
    if(closing||target==null||!SameRouter(target))return;int generation=++navigationGeneration;preparingNavigation=true;navigating=false;assetCache=null;bypassPageCache=bypassCache;retryTarget=target;browser.CoreWebView2.Stop();ShowProgress("Your network workspace",bypassCache?"Fetching fresh interface files. Your router login is kept.":"Connecting to "+router.Authority+". Checking the latest interface…");
    try{

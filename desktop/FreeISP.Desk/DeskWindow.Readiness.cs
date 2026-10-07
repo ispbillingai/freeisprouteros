@@ -49,7 +49,7 @@ namespace FreeISP.Desk {
     navigationCompleted=true;
     if(!IsHub(browser.Source)){if(cacheTest){navigating=false;await CheckBrowserCache();}return;}
     RevealPage();
-    if(selfTest&&!readinessTest){await Task.Delay(400);if(CurrentNavigation(generation,id))await RunSelfTest(args.IsSuccess);return;}
+    if(selfTest&&!readinessTest&&!liveRouterTest){await Task.Delay(400);if(CurrentNavigation(generation,id))await RunSelfTest(args.IsSuccess);return;}
     await Send(new{type="routers",routers=ReadRouters()});
    }catch(Exception ex){if(CurrentNavigation(generation,id)){navigating=false;ShowProgress("Interface unavailable","The page could not finish opening. "+ex.Message,true);}}
   }
@@ -93,7 +93,7 @@ namespace FreeISP.Desk {
     var target=new Uri(router,"/cgi-bin/luci/admin/freeisp");
     await NavigateRouter(target);
     await WaitForCheck(()=>retry.Visible&&progressTitle.Text=="Router page did not finish loading","Stuck view did not produce bounded recovery controls.");
-    checks["stuck_view_timeout"]=loading.Visible&&!browser.Visible&&returnHub.Visible;
+    checks["stuck_view_timeout"]=loading.Visible&&browser.Visible&&Controls.GetChildIndex(loading)<Controls.GetChildIndex(browser)&&returnHub.Visible;
     byte[] cached;string type;
     checks["stuck_asset_cached"]=assetCache.TryRead(new Uri(router,"/luci-static/freeisp/readiness.js"),out cached,out type);
     using(var client=new HttpClient()){await client.GetStringAsync(new Uri(router,"/fixture/repair"));}
