@@ -28,65 +28,57 @@ return view.extend({
         }
         function row(label,node) { return E('div',{'class':'qs-row'},[E('label',{'for':node.id || null},label),node]); }
         function check(key,label,value,disabled) { return E('label',{'class':'qs-check'},[input(key,value,'checkbox',disabled),' '+label]); }
-        function section(title,children) { return E('fieldset',{},[E('legend',{},title)].concat(children)); }
+        function section(title,children) { var parts=title.split(' / '); return E('fieldset',{},[E('legend',{},[E('span',{},parts[0]+' /'),parts[1]])].concat(children)); }
         function link(label,path) { return E('a',{'class':'qs-button',href:L.url.apply(L,['admin'].concat(path))},label); }
         function unavailable(label,value) { return row(label,input('unavailable-'+Object.keys(fields).length,value || 'Unavailable', 'text',true)); }
         function radios(name,items,selected,disabled) { return E('span',{'class':'qs-radios'},items.map(function(item) { return E('label',{},[E('input',{type:'radio',name:name,value:item[0],checked:selected===item[0] || null,disabled:disabled || null,change:function(){self.updateProtocol();}}),' '+item[1]]); })); }
         var proto=uci.get('network','wan','proto') || 'dhcp';
+        function mark(){return E('span',{'class':'freeisp-mark','aria-hidden':'true'},[E('i'),E('i'),E('i')]);}
         var root=E('div',{'class':'qs-window'},[
             E('link',{rel:'stylesheet',href:L.resource('freeisp/quickset.css')}),
-            E('div',{'class':'qs-title'},[E('select',{'aria-label':'Quick Set profile',disabled:true},[E('option',{},'Router')]),E('span',{},'Quick Set'),E('span',{'class':'qs-brand'},'FreeISP')]),
+            E('div',{'class':'qs-heading'},[E('div',{},[E('h2',{},'Quick Set'),E('p',{},'Your network, configured.')]),E('span',{'class':'qs-status',role:'status'},'Settings loaded')]),
+            E('div',{'class':'qs-route','aria-label':'Network connections'},[
+                E('div',{'class':'qs-node'},[E('b',{},'01'),E('div',{},[E('strong',{},'Internet'),E('small',{},current.address || 'No address')])]),
+                E('span',{'class':'qs-wire','aria-hidden':'true'}),E('div',{'class':'qs-router-mark','aria-label':'FreeISP router'},mark()),E('span',{'class':'qs-wire','aria-hidden':'true'}),
+                E('div',{'class':'qs-node'},[E('b',{},'02'),E('div',{},[E('strong',{},'Local network'),E('small',{},lanIP)])]),
+                E('span',{'class':'qs-online'+(wan.up?' is-up':'')},wan.up?'WAN connected':'WAN disconnected')
+            ]),
             E('div',{'class':'qs-content'},[
-                E('div',{'class':'qs-left'},[
-                    section('Wireless',[
-                        row('Wireless Protocol:',radios('qs-wireless',[['80211','802.11'],['nstreme','nstreme'],['nv2','nv2']],'80211',true)),
-                        unavailable('Network Name:','No wireless radio'), unavailable('Frequency:'), unavailable('Band:'), unavailable('Channel Width:'), unavailable('Country:'), unavailable('MAC Address:'),
-                        check('acl','Use Access List (ACL)',false,true),
-                        E('div',{'class':'qs-security'},[E('span',{},'Security: '),check('wpa','WPA',false,true),check('wpa2','WPA2',false,true)]),
-                        E('p',{'class':'qs-hint'},'This router has no wireless radio. Wireless setup is unavailable.')
-                    ]),
-                    section('Wireless Clients',[
-                        E('div',{'class':'qs-client-list'},[E('table',{},[E('thead',{},E('tr',{},['MAC Address','In ACL','Last IP','Uptime','Signal Strength'].map(function(t){return E('th',{},t);}))),E('tbody',{},E('tr',{},E('td',{colspan:5,'class':'qs-empty'},'No wireless radio')))])]),
-                        E('div',{'class':'qs-signal'},E('span',{},'■ Signal Strength: —')),
-                        E('div',{'class':'qs-end'},[E('button',{disabled:true},'Copy To ACL'),E('button',{disabled:true},'Remove From ACL')])
-                    ])
+                section('01 / Internet',[
+                    radios('qs-proto',[['dhcp','Automatic'],['static','Static'],['pppoe','PPPoE']],proto,false),
+                    row('IP address',input('wanIP',uci.get('network','wan','ipaddr') || current.address || '')),
+                    row('Netmask',input('wanMask',uci.get('network','wan','netmask') || (current.mask ? data.address((4294967295 << (32-current.mask)) >>> 0) : '255.255.255.0'))),
+                    row('Gateway',input('gateway',uci.get('network','wan','gateway') || route.nexthop || '')),
+                    row('DNS servers',input('dns',[].concat(uci.get('network','wan','dns') || []).join(' '))),
+                    row('PPPoE username',input('pppUser',uci.get('network','wan','username') || '')),
+                    row('PPPoE password',input('pppPassword','','password')),
+                    E('p',{'class':'qs-hint','id':'qs-password-hint'},'Leave empty to keep the existing password.'),
+                    E('details',{'class':'qs-advanced'},[E('summary',{},'Connection details'),unavailable('MAC address',(devs[wan.l3_device] || devs[wan.device] || {}).macaddr || 'Unavailable'),link('Manage connection →',['network','network'])])
                 ]),
-                E('div',{'class':'qs-right'},[
-                    section('Configuration',[row('Mode:',radios('qs-mode',[['router','Router'],['bridge','Bridge']],'router',true)),E('p',{'class':'qs-hint'},['Bridge configuration: ',link('Interfaces',['network','network'])])]),
-                    section('Internet',[
-                        row('Address Acquisition:',radios('qs-proto',[['static','Static'],['dhcp','Automatic'],['pppoe','PPPoE']],proto,false)),
-                        row('IP Address:',input('wanIP',uci.get('network','wan','ipaddr') || current.address || '')),
-                        row('Netmask:',input('wanMask',uci.get('network','wan','netmask') || (current.mask ? data.address((4294967295 << (32-current.mask)) >>> 0) : '255.255.255.0'))),
-                        row('Gateway:',input('gateway',uci.get('network','wan','gateway') || route.nexthop || '')),
-                        row('DNS Servers:',input('dns',[].concat(uci.get('network','wan','dns') || []).join(' '))),
-                        row('PPPoE User:',input('pppUser',uci.get('network','wan','username') || '')),
-                        row('PPPoE Password:',input('pppPassword','','password')),
-                        E('p',{'class':'qs-hint','id':'qs-password-hint'},'Leave the password empty to keep the existing password.'),
-                        unavailable('MAC Address:',(devs[wan.l3_device] || devs[wan.device] || {}).macaddr || 'Unavailable'),
-                        check('firewall','Firewall Router',true,true),
-                        E('div',{'class':'qs-end'},[link('Renew / Release',['network','network'])])
-                    ]),
-                    section('Local Network',[
-                        row('IP Address:',input('lanIP',lanIP)), row('Netmask:',input('lanMask',lanMask)),
-                        check('dhcp','DHCP Server',uci.get('dhcp','lan','ignore')!=='1'),
-                        row('DHCP Server Range:',input('range',range)), check('nat','NAT',!!zone && zone.masq==='1',!zone),
-                        E('div',{'class':'qs-end'},link('Port Mapping',['network','firewall','forwards']))
-                    ]),
-                    section('VPN',[check('vpn','VPN Access',false,true),E('p',{'class':'qs-hint'},['Configure a tunnel in ',link('Interfaces',['network','network'])])]),
-                    section('System',[
-                        row('Router Identity:',input('hostname',system ? system.hostname : 'FreeISP')),
-                        E('div',{'class':'qs-end'},[link('Check For Updates',['system','package-manager']),link('Reset Configuration',['system','flash'])]),
-                        E('div',{'class':'qs-end'},link('Password…',['system','admin']))
-                    ])
+                section('02 / Local network',[
+                    row('Router IP',input('lanIP',lanIP)),row('Netmask',input('lanMask',lanMask)),
+                    check('dhcp','DHCP server',uci.get('dhcp','lan','ignore')!=='1'),
+                    row('DHCP range',input('range',range)),check('nat','NAT',!!zone && zone.masq==='1',!zone),
+                    E('div',{'class':'qs-end'},[link('Port mapping →',['network','firewall','forwards']),link('Bridge / VLAN →',['network','network'])])
+                ]),
+                section('03 / Wireless',[
+                    E('div',{'class':'qs-empty-state'},[E('div',{},[E('strong',{},'No radio detected'),E('p',{},'Wireless is unavailable on this virtual router.')])]),
+                    unavailable('Network name','Unavailable'),unavailable('Security','Unavailable'),
+                    E('p',{'class':'qs-hint'},'Wireless controls require a supported radio and driver.')
+                ]),
+                section('04 / System',[
+                    row('Router name',input('hostname',system ? system.hostname : 'FreeISP')),
+                    E('div',{'class':'qs-system-links'},[link('VPN tunnel · Configure →',['network','network']),link('Password & access →',['system','admin'])]),
+                    E('details',{'class':'qs-advanced'},[E('summary',{},'Maintenance'),E('div',{'class':'qs-end'},[link('Software updates',['system','package-manager']),link('Backup / reset',['system','flash'])])])
                 ]),
                 E('div',{'class':'qs-actions'},[
-                    E('button',{click:function(){self.save(true);}},'OK'),
+                    E('span',{'class':'qs-save-note'},'Review changes before applying.'),
                     E('button',{click:function(){window.location.reload();}},'Cancel'),
-                    E('button',{click:function(){self.save(false);}},'Apply')
+                    E('button',{'class':'qs-primary',click:function(){self.save(false);}},'Apply changes')
                 ])
-            ]),
-            E('div',{'class':'qs-status',role:'status'},wan.up ? 'active · Internet connected' : 'Internet disconnected')
+            ])
         ]);
+        root.addEventListener('input',function(){root.querySelector('.qs-status').textContent='Unsaved changes';});
         self.updateProtocol=function() {
             var selected=root.querySelector('input[name="qs-proto"]:checked');
             var p=selected ? selected.value : proto;
