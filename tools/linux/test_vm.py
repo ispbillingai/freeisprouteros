@@ -145,8 +145,13 @@ try:
     import re
     check('kernel_nat_counter_nonzero', bool(re.search(r'counter packets [1-9][0-9]* bytes [0-9]+ masquerade', status['observed']['firewall'])))
 
-    code, staged = request(auth, '/api/config', dict(original, name='Temporary lab change'))
+    code, staged = request(auth, '/api/config', dict(original, name='Temporary lab change',
+                                                   lan='10.77.1.1/24', pool_start='10.77.1.100', pool_end='10.77.1.199'))
     check('configuration_staged', code == 200)
+    _, staged_status = request(auth, '/api/status')
+    check('lan_address_really_changed_maintenance_survives', any(
+        a.get('local') == '10.77.1.1' for interface in staged_status['observed']['interfaces']
+        for a in interface['addr_info']))
     check('unconfirmed_backup_stays_saved', request(auth, '/api/backup')[1] == original)
     check('wrong_confirmation_rejected', request(auth, '/api/confirm', {'id': 'wrong'})[0] == 400)
     print('Waiting for the actual 60-second automatic configuration restore...', flush=True)
@@ -156,6 +161,9 @@ try:
         if not s['pending']:
             break
     check('actual_timeout_reverts_configuration', s['config'] == original and s['pending'] is None and s['error'] is None)
+    check('timeout_restores_actual_lan_address', any(
+        a.get('local') == original['lan'].split('/')[0] for interface in s['observed']['interfaces']
+        for a in interface['addr_info']))
     changed = dict(original, name='FreeISP persistence test')
     code, staged = request(auth, '/api/config', changed)
     check('confirmation_saves', code == 200 and request(auth, '/api/confirm', {'id': staged['pending']['id']})[0] == 200)
