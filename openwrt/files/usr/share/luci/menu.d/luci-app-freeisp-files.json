@@ -1,0 +1,15 @@
+{
+  "admin/system/freeisp_files": {
+    "title": "Files",
+    "order": 65,
+    "action": {
+      "type": "view",
+      "path": "freeisp/files"
+    },
+    "depends": {
+      "acl": [
+        "luci-app-freeisp-files"
+      ]
+    }
+  }
+}

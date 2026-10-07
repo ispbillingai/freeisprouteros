@@ -35,6 +35,27 @@ RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik supp
 are vendor-specific features, not OpenWrt features that can be renamed into existence.
 Wireless, switch offload, mesh and 802.1X need suitable hardware and their own tests.
 
+## Files
+
+The Files screen browses persistent `/srv/freeisp-files` storage with folder
+navigation, search, upload, binary download and confirmed single-file deletion.
+It does not browse system configuration, follow symlinks, or remove directories.
+Backup and Restore open the existing OpenWrt configuration tools; these archives
+do not automatically include the Files storage directory. Download user files
+separately before reflashing. Cloud Backup is explicitly unavailable. Timestamps
+show modification time; the footer totals listed file sizes, not disk capacity.
+
+Browser interaction and failure checks: `node tools/openwrt/test-files-ui.cjs`
+(requires Playwright with Chromium; set `FREEISP_BROWSER_CHANNEL=msedge` to use
+an installed Edge browser). These checks use simulated RPC responses.
+
+Real backend checks: on a Linux test host with QEMU, OpenSSL and mount support,
+run `FREEISP_TEST_IMAGE=/private/freeisp-openwrt-x86-64.img.gz python3 tools/openwrt/test-files-backend.py`
+as root. This creates a disposable VM using a copy of the supplied image,
+exercises rpcd and CGI actions, checks restricted accounts and two guest reboots,
+then removes the temporary disk. Reports are under `artifacts/tests/files`.
+This does not deploy to the VPS or test customer packet forwarding.
+
 ## VPS lab and access
 
 This is a guest VM, not a replacement for the Ubuntu host. Host routes are untouched.

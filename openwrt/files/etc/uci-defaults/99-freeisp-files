@@ -1,0 +1,5 @@
+#!/bin/sh
+# Persistent user-file storage, separate from configuration and firmware.
+mkdir -p /srv/freeisp-files || exit 1
+chmod 700 /srv/freeisp-files
+exit 0

@@ -1,0 +1,43 @@
+{
+  "luci-app-freeisp-files": {
+    "description": "FreeISP router file storage",
+    "read": {
+      "cgi-io": [
+        "download"
+      ],
+      "ubus": {
+        "file": [
+          "list",
+          "lstat",
+          "read"
+        ]
+      },
+      "file": {
+        "/srv/freeisp-files": [
+          "list",
+          "read"
+        ],
+        "/srv/freeisp-files/*": [
+          "list",
+          "read"
+        ]
+      }
+    },
+    "write": {
+      "ubus": {
+        "file": [
+          "write",
+          "remove"
+        ]
+      },
+      "file": {
+        "/srv/freeisp-files/*": [
+          "write"
+        ]
+      },
+      "cgi-io": [
+        "upload"
+      ]
+    }
+  }
+}
