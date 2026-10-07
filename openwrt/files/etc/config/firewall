@@ -32,6 +32,13 @@ config forwarding
 	option dest 'wan'
 
 config rule
+	option name 'Reject-plain-management-from-LAN'
+	option src 'lan'
+	option proto 'tcp'
+	option dest_port '80'
+	option target 'REJECT'
+
+config rule
 	option name 'Allow-WAN-DHCP'
 	option src 'wan'
 	option proto 'udp'
