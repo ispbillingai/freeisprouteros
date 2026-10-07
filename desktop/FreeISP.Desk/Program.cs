@@ -55,7 +55,7 @@ namespace FreeISP.Desk {
   readonly Label connectionLabel=new Label{AutoSize=true,ForeColor=Color.FromArgb(164,220,223),Top=19,Left=640,Text="Local workspace"};
   readonly Button retry=new Button{Text="Try again",Width=110,Height=32,Visible=false};
   readonly Button returnHub=new Button{Text="Device Hub",Width=110,Height=32,Visible=false};
-  RouterAssetCache assetCache; string approvedNavigation; int navigationGeneration; bool preparingNavigation; bool navigating;
+  RouterAssetCache assetCache; Task assetPreparation; string browserCacheKey; string approvedNavigation; int navigationGeneration; bool preparingNavigation; bool navigating;
   Uri router; bool busy; bool scanning;
   readonly bool cacheTest=Environment.GetCommandLineArgs().Contains("--cache-test");
   readonly bool selfTest=Program.IsTest;
@@ -83,7 +83,22 @@ namespace FreeISP.Desk {
     await browser.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(null,Path.Combine(data,"Browser")));
     var core=browser.CoreWebView2;
     core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);
-    core.WebResourceRequested+=(sender,args)=>{Uri uri;byte[] bytes;string type;var cache=assetCache;if(args.Request.Method!="GET"||!Uri.TryCreate(args.Request.Uri,UriKind.Absolute,out uri)||!RouterAssetCache.Allowed(router,uri))return;args.Request.Headers.SetHeader("Cache-Control","no-cache");if(cache==null||cache.Revision==null)return;args.Request.Headers.SetHeader("X-FreeISP-Desk-Revision",cache.Revision);if(!bypassPageCache&&cache.TryRead(uri,out bytes,out type))args.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(bytes),200,"OK","Content-Type: "+type+"\r\nCache-Control: no-store\r\nX-FreeISP-Desk-Cache: local\r\n");};
+    core.WebResourceRequested+=async(sender,args)=>{
+     Uri uri;
+     if(args.Request.Method!="GET"||!Uri.TryCreate(args.Request.Uri,UriKind.Absolute,out uri)||!RouterAssetCache.Allowed(router,uri))return;
+     var deferral=args.GetDeferral();
+     try{
+      var pending=assetPreparation;
+      if(pending!=null)await pending;
+      if(closing)return;
+      args.Request.Headers.SetHeader("Cache-Control","no-cache");
+      var cache=assetCache;byte[] bytes;string type;
+      if(cache==null||cache.Revision==null||!RouterAssetCache.Allowed(cache.Origin,uri))return;
+      args.Request.Headers.SetHeader("X-FreeISP-Desk-Revision",cache.Revision);
+      if(!bypassPageCache&&cache.TryRead(uri,out bytes,out type))args.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(bytes),200,"OK","Content-Type: "+type+"\r\nCache-Control: no-store\r\nX-FreeISP-Desk-Cache: local\r\n");
+     }catch(Exception ex)when(ex is IOException||ex is InvalidOperationException||ex is COMException){}
+     finally{deferral.Complete();}
+    };
     core.WebResourceResponseReceived+=async(sender,args)=>{var cache=assetCache;Uri uri;if(cache==null||cache.Revision==null||args.Request.Method!="GET"||!Uri.TryCreate(args.Request.Uri,UriKind.Absolute,out uri)||!RouterAssetCache.Allowed(cache.Origin,uri)||args.Response.StatusCode!=200)return;try{if(args.Response.Headers.Contains("X-FreeISP-Desk-Cache")||!args.Request.Headers.Contains("X-FreeISP-Desk-Revision")||args.Request.Headers.GetHeader("X-FreeISP-Desk-Revision")!=cache.Revision)return;string type=args.Response.Headers.GetHeader("Content-Type");using(var stream=await args.Response.GetContentAsync()){if(stream==null)return;var pending=RouterAssetCache.LimitedRead(stream,RouterAssetCache.MaximumAssetBytes);if(await Task.WhenAny(pending,Task.Delay(5000))!=pending)return;var bytes=await pending;if(ReferenceEquals(cache,assetCache))cache.Store(uri,type,bytes);}}catch(Exception ex)when(ex is IOException||ex is ArgumentException||ex is InvalidOperationException||ex is COMException){}};
     if(selfTest){core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||(!IsHub(u)&&!(((cacheTest||readinessTest||liveRouterTest)&&SameRouter(u))||(routerSelfTest&&u.Scheme=="http"&&u.Host=="127.0.0.1"&&u.Port==18940))))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
     string hubFolder=Path.Combine(Program.Assets,"Hub");
@@ -150,7 +165,7 @@ namespace FreeISP.Desk {
      cacheTestStage++;
      if(cacheTestStage==2||cacheTestStage==3)await client.GetStringAsync(new Uri(router,"/fixture/revision?stage="+cacheTestStage));
     }
-    if(cacheTestStage==4)await browser.CoreWebView2.ExecuteScriptAsync("var form=document.createElement('form');form.method='POST';form.action='/cgi-bin/luci/admin/freeisp';var input=document.createElement('input');input.name='probe';input.value='preserved';form.appendChild(input);document.body.appendChild(form);form.submit();");else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?page="+cacheTestStage));
+    if(cacheTestStage==4)await browser.CoreWebView2.ExecuteScriptAsync("var form=document.createElement('form');form.method='POST';form.action='/cgi-bin/luci/admin/freeisp';var input=document.createElement('input');input.name='probe';input.value='preserved';form.appendChild(input);document.body.appendChild(form);form.submit();");else if(cacheTestStage==1)await browser.CoreWebView2.ExecuteScriptAsync("location.href="+json.Serialize(new Uri(router,"/cgi-bin/luci/admin/freeisp?page=1").AbsoluteUri));else await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp?page="+cacheTestStage));
    }catch(Exception ex){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"cache-test.json"),json.Serialize(new{passed=false,error=ex.ToString()}));Close();}
   }
   bool SameRouter(Uri u){return router!=null&&u.Scheme==router.Scheme&&u.Authority==router.Authority;}
@@ -161,8 +176,9 @@ namespace FreeISP.Desk {
    try{
     var next=new RouterAssetCache(Path.Combine(data,"RouterAssets"));await next.Prepare(router);
     if(closing||generation!=navigationGeneration||!SameRouter(target))return;
-    // Do not let WebView's independent HTTP cache retain a previous UI revision.
-    await browser.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache);
+    // Clear only when changing routers or interface releases, not on every visit.
+    string cacheKey=router.AbsoluteUri+"|"+next.Revision;
+    if(browserCacheKey!=cacheKey){await browser.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache);browserCacheKey=cacheKey;}
     if(closing||generation!=navigationGeneration||!SameRouter(target))return;
     assetCache=next;approvedNavigation=target.AbsoluteUri;preparingNavigation=false;browser.CoreWebView2.Navigate(target.AbsoluteUri);
    }catch(Exception ex){if(!closing&&generation==navigationGeneration){preparingNavigation=false;ShowProgress("Connection unavailable","Your local workspace is ready. "+ex.Message,true);}}

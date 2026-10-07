@@ -32,6 +32,11 @@ namespace FreeISP.Desk {
    // The deadline includes document loading, not only LuCI's later asynchronous rendering.
    if(!redirect&&!cacheTest)_=WatchRouterView(generation,id);
    if(approved||redirect)return;
+   assetPreparation=PrepareNavigationAssets(generation,id,target);
+   await assetPreparation;
+  }
+
+  async Task PrepareNavigationAssets(int generation,ulong id,Uri target){
    try{
     var next=new RouterAssetCache(Path.Combine(data,"RouterAssets"));await next.Prepare(router);
     if(CurrentNavigation(generation,id)&&SameRouter(target))assetCache=next;

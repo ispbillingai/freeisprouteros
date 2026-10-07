@@ -29,6 +29,11 @@ return view.extend({
         function editable() { return !readonly && !busy && !uncertain; }
         function editor(kind, row) {
             var record = clone(row || {id: identifier(), enabled: true}), fields = {}, specs;
+            var defaultProfile = draft.profiles.find(function(p) { return p.name === 'default'; }) || draft.profiles[0];
+            if (!row && defaultProfile) {
+                if (kind === 'servers') record.profile = defaultProfile.id;
+                if (kind === 'profiles') ['pool', 'local_ip', 'dns1', 'dns2', 'download', 'upload'].forEach(function(key) { record[key] = defaultProfile[key]; });
+            }
             var common = [{key: 'name', label: kind === 'secrets' ? 'Username' : kind === 'servers' ? 'Service name' : 'Name', required: true}];
             if (kind === 'pools') specs = common.concat([
                 {key: 'start', label: 'First address', placeholder: '10.80.0.10', required: true},

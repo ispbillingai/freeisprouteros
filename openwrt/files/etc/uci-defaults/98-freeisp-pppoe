@@ -19,5 +19,6 @@ set firewall.freeisp_pppoe_wan.src='pppoe'
 set firewall.freeisp_pppoe_wan.dest='wan'
 commit firewall
 EOF
+python3 /usr/lib/freeisp/pppoe.py initialize
 /etc/init.d/freeisp-pppoe enable
 exit 0

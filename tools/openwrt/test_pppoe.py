@@ -1,5 +1,6 @@
 """Backend regression tests; VM packet tests are in test-pppoe-vm.py."""
 import copy
+import ipaddress
 import importlib.util
 import json
 from pathlib import Path
@@ -23,6 +24,19 @@ def fixture():
 
 
 class PPPoETest(unittest.TestCase):
+    def test_initial_defaults_are_valid_and_do_not_start_a_server(self):
+        config = p.initial_config([ipaddress.ip_network('10.79.0.0/24')])
+        self.assertEqual(config['profiles'][0]['name'], 'default')
+        self.assertEqual(config['profiles'][0]['local_ip'], '10.80.0.1')
+        self.assertEqual(config['profiles'][0]['pool'], config['pools'][0]['id'])
+        self.assertEqual(config['servers'], [])
+        self.assertEqual(config['secrets'], [])
+        self.assertEqual(p.validate(config), config)
+
+    def test_initial_defaults_fail_if_no_subnet_available(self):
+        with self.assertRaises(ValueError):
+            p.initial_config([ipaddress.ip_network('10.0.0.0/8')])
+
     def test_create_edit_delete_and_stable_pool_allocation(self):
         config = p.validate(fixture())
         self.assertEqual(config['secrets'][0]['assigned_ip'], '10.80.0.10')

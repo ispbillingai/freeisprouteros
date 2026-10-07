@@ -319,6 +319,34 @@ def interfaces():
             if r.get('link_type') == 'ether' and not r['ifname'].startswith('fi-')]
 
 
+def initial_config(networks):
+    """Choose a subscriber subnet without overlapping existing router addresses."""
+    for second in range(79, 255):
+        net = ipaddress.ip_network('10.%d.0.0/24' % second)
+        if any(net.overlaps(other) for other in networks):
+            continue
+        config = copy.deepcopy(EMPTY)
+        config['pools'] = [{'id': '000000000001', 'name': 'default-pool',
+                            'start': str(net.network_address + 2), 'end': str(net.network_address + 254)}]
+        config['profiles'] = [{'id': '000000000002', 'name': 'default',
+            'pool': '000000000001', 'local_ip': str(net.network_address + 1),
+            'dns1': '1.1.1.1', 'dns2': '8.8.8.8', 'download': 0, 'upload': 0}]
+        return validate(config)
+    raise ValueError('No free default subscriber subnet. Configure a PPPoE pool manually.')
+
+
+def initialize_defaults():
+    with lock():
+        current = read_json(CONFIG, EMPTY)
+        if current != EMPTY:
+            return False  # Never replace existing subscriber settings.
+        addresses = json.loads(command(['/sbin/ip', '-j', '-4', 'address', 'show']))
+        networks = [ipaddress.ip_network(a['local'] + '/' + str(a['prefixlen']), strict=False)
+                    for row in addresses for a in row.get('addr_info', []) if a.get('family') == 'inet']
+        write_json(CONFIG, initial_config(networks))
+        return True
+
+
 def check_network(config):
     devices = {r['name']: r for r in interfaces()}
     addresses = json.loads(command(['/sbin/ip', '-j', '-4', 'address', 'show']))
@@ -494,6 +522,9 @@ def hook(action, argv):
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "initialize":
+        initialize_defaults()
+        return
     if len(sys.argv) > 1 and sys.argv[1] == 'serve':
         serve()
         return

@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "branch": "codex/release-review",
   "build": {
     "configuration": "Release x64 net48",
@@ -41,7 +41,7 @@
     "Old pinned shortcuts may retain an old icon until repinned.",
     "Physical WiFi cannot be tested on the VPS."
   ],
-  "executable_sha256": "a5886741b669b185759c76a651398411157a57f0432643b6f69d810592e9255e",
+  "executable_sha256": "0cc1d93b56353181db7513e84fc8e725ab2fa45b6735b65d45c21a4800653c95",
   "merged_sources": [
     "16f9c080e9321a64efaf9834bdb8955849e95d0d",
     "fd299f0"
@@ -87,9 +87,7 @@
       "superseded_watchdog_ignored": true,
       "stalled_navigation_timeout": true,
       "cancelled_completion_ignored": true
-    },
-    "production_deadline_seconds": 30,
-    "test_deadline_milliseconds": 1800
+    }
   },
   "base_release": "94d63e4",
   "animation_frame_regression": {
@@ -111,5 +109,12 @@
     "secret_sent_to_hub": false,
     "restart_verified": true,
     "live_saved_reconnect_verified": true
+  },
+  "performance_change": {
+    "cache_cleared_only_for_router_or_revision_change": true,
+    "internal_navigation_uses_validated_cache": true,
+    "baseline_two_logins_seconds": 26.0544401,
+    "updated_two_logins_seconds": 25.8450791,
+    "note": "Single-run app startup plus two connections, not a general speed guarantee."
   }
 }
