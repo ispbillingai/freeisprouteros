@@ -34,6 +34,7 @@ change host routing, firewall rules, bridges or physical network interfaces.
 Only loopback TCP forwards are used:
 
 - `8843`: management HTTPS.
+- `8874`: maintenance HTTP, loopback-only; use encrypted SSH forwarding remotely.
 - `8844`: negative test through the WAN interface; expected to time out.
 - `18877`: virtual Ethernet socket for the separate customer test VM.
 
@@ -63,17 +64,23 @@ Install QEMU, then run `sh run.sh` from the release directory. The launcher uses
 KVM if available, otherwise software emulation. Allow extra boot time on a VPS
 without nested virtualization. Allocate at least 512 MiB to the router VM.
 
-Open `https://127.0.0.1:8843`. The VM generates its own self-signed certificate on
+For normal lab access, open `http://127.0.0.1:8874` through the SSH tunnel below.
+The HTTP leg stays on loopback and the isolated maintenance backend; SSH encrypts
+the remote connection. This endpoint refuses mutation requests for non-loopback
+Host headers and cannot be reached through the customer or WAN interfaces.
+Do not publish this port through a reverse proxy or a public bind address.
+
+LAN management remains HTTPS on port 8443. The VM generates its own self-signed certificate on
 first boot and keeps it on the state disk. Only accept the certificate for this
 known private lab endpoint. Never ignore certificate errors for unrelated sites.
 
 For a remote host, forward the loopback service through SSH:
 
 ```sh
-ssh -N -L 8843:127.0.0.1:8843 USER@SERVER
+ssh -N -L 8874:127.0.0.1:8874 USER@SERVER
 ```
 
-Then use the same local URL. Nothing needs to listen on the public VPS address.
+Then open `http://127.0.0.1:8874`. Nothing needs to listen on the public VPS address.
 The serial console is a privileged maintenance console; access to the VM process,
 its host account and the state disk must be restricted.
 

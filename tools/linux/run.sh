@@ -14,6 +14,6 @@ exec qemu-system-x86_64 -machine q35 -accel "$ACCEL" -cpu "$CPU" -m 512 -smp 2 \
  -device virtio-net-pci,netdev=wan,mac=52:54:00:f1:00:01 \
  -netdev socket,id=lan,listen=127.0.0.1:18877 \
  -device virtio-net-pci,netdev=lan,mac=52:54:00:f1:00:02 \
- -netdev user,id=management,net=10.78.0.0/24,hostfwd=tcp:127.0.0.1:8843-10.78.0.15:8443,restrict=on \
+ -netdev user,id=management,net=10.78.0.0/24,hostfwd=tcp:127.0.0.1:8843-10.78.0.15:8443,hostfwd=tcp:127.0.0.1:8874-10.78.0.15:8080,restrict=on \
  -device virtio-net-pci,netdev=management,mac=52:54:00:f1:00:03 \
  -display none -monitor none -serial stdio -no-reboot

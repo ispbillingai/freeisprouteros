@@ -41,7 +41,7 @@ table inet freeisp {{
   iifname "{lan}" ip saddr {subnet} udp dport 53 accept
   iifname "{lan}" ip saddr {subnet} tcp dport {{53,8443}} accept
   iifname "{lan}" ip saddr {subnet} icmp type echo-request accept
-  iifname "{mgmt}" ip saddr 10.78.0.0/24 tcp dport 8443 accept
+  iifname "{mgmt}" ip saddr 10.78.0.0/24 tcp dport {{8080,8443}} accept
  }}
  chain forward {{
   type filter hook forward priority 0; policy drop;

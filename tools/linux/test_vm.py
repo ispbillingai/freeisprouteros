@@ -62,10 +62,10 @@ def session():
                                       urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
 
-def request(opener, path, data=None, headers=None):
+def request(opener, path, data=None, headers=None, base='https://127.0.0.1:8843'):
     opts = {'Content-Type': 'application/json', 'X-FreeISP-Request': '1'}
     opts.update(headers or {})
-    req = urllib.request.Request('https://127.0.0.1:8843' + path,
+    req = urllib.request.Request(base + path,
                                  data=None if data is None else json.dumps(data).encode(), headers=opts)
     try:
         response = opener.open(req, timeout=15)
@@ -98,6 +98,12 @@ try:
     auth = session()
     password = json.loads((OUT / 'credentials.json').read_text())['password']
     check('administrator_login', request(auth, '/api/login', {'password': password})[0] == 200)
+    maintenance = session()
+    private_url = 'http://127.0.0.1:8874'
+    check('ssh_maintenance_requires_login', request(maintenance, '/api/status', base=private_url)[0] == 401)
+    check('ssh_maintenance_login', request(maintenance, '/api/login', {'password': password}, base=private_url)[0] == 200)
+    check('ssh_maintenance_status', request(maintenance, '/api/status', base=private_url)[0] == 200)
+    check('ssh_maintenance_cross_origin_rejected', request(maintenance, '/api/revert', {}, {'Origin': 'http://elsewhere.invalid'}, base=private_url)[0] == 403)
     check('cross_origin_mutation_rejected', request(auth, '/api/revert', {}, {'Origin': 'https://elsewhere.invalid'})[0] == 403)
     code, status = request(auth, '/api/status')
     check('dhcp_dns_process_live', code == 200 and status['observed']['dhcp_dns_running'])

@@ -32,6 +32,11 @@ try:
             checks['customer_cannot_forward_into_maintenance'] = False
     except OSError:
         checks['customer_cannot_forward_into_maintenance'] = True
+    try:
+        with socket.create_connection(('10.78.0.15', 8080), timeout=3):
+            checks['customer_cannot_access_plain_maintenance'] = False
+    except OSError:
+        checks['customer_cannot_access_plain_maintenance'] = True
 except Exception as exc:
     checks['error'] = str(exc)
 print('FREEISP_CLIENT_RESULT=' + json.dumps(checks), flush=True)

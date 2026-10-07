@@ -22,7 +22,7 @@ if not private.exists():
     private.chmod(0o600)
 record = json.loads(private.read_text())
 (Path(os.environ['FREEISP_BUILD_ROOT']) / 'etc/freeisp/admin.json').write_text(json.dumps({k: record[k] for k in ('salt', 'hash')}))
-(out / 'CREDENTIALS.txt').write_text('FreeISP private lab build\nManagement: https://127.0.0.1:8843\nAdministrator password: ' + record['password'] + '\nKeep this file and the state disk private.\n')
+(out / 'CREDENTIALS.txt').write_text('FreeISP private lab build\nManagement through SSH: http://127.0.0.1:8874\nAdministrator password: ' + record['password'] + '\nKeep this file and the state disk private.\n')
 PY
 cp "$ROOT/boot/vmlinuz-virt" "$OUT/vmlinuz"
 # Exclude mounted build resources, all runtime files and the unused vendor initrd.

@@ -8,7 +8,7 @@
   "boot": "kernel and initramfs with dedicated state disk; direct QEMU boot",
   "physical_hardware_installable": false,
   "production_ready": false,
-  "management": "HTTPS on guest TCP 8443; host loopback TCP 8843",
+  "management": "LAN HTTPS on guest TCP 8443; SSH-forwarded isolated maintenance on host loopback TCP 8874",
   "network_roles": ["WAN DHCP", "customer LAN", "isolated lab maintenance"],
   "configuration_recovery": "60-second confirmation and persistent last-good settings",
   "automatic_system_image_rollback": false,

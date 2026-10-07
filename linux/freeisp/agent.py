@@ -122,11 +122,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("X-FreeISP-Request") != "1":
             return False
         origin = self.headers.get("Origin")
-        if origin and origin != "https://" + self.headers.get("Host", ""):
+        scheme = "https://" if self.server.is_tls else "http://"
+        if origin and origin != scheme + self.headers.get("Host", ""):
             return False
         host = urlsplit("https://" + self.headers.get("Host", "")).hostname
         allowed = {"localhost", "127.0.0.1", "10.78.0.15", "freeisp.lan",
                    str(ipaddress.ip_interface(self.server.controller.active["lan"]).ip)}
+        if not self.server.is_tls:
+            allowed = {"localhost", "127.0.0.1"}
         return host in allowed
 
     def do_GET(self):
@@ -191,7 +194,8 @@ class Handler(BaseHTTPRequestHandler):
                 with self.server.sessions_lock:
                     cookie = SimpleCookie(self.headers.get("Cookie", ""))
                     self.server.sessions.pop(cookie["freeisp_session"].value, None)
-                self.reply(200, {"signed_out": True}, headers={"Set-Cookie": "freeisp_session=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Strict"})
+                secure = "; Secure" if self.server.is_tls else ""
+                self.reply(200, {"signed_out": True}, headers={"Set-Cookie": "freeisp_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict" + secure})
             else:
                 self.reply(404, {"error": "Not found."})
         except (ValueError, TypeError, KeyError) as exc:
@@ -219,7 +223,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(self.server.sessions) >= 32:
                 self.server.sessions.pop(next(iter(self.server.sessions)))
             self.server.sessions[token] = time.time() + 3600
-        self.reply(200, {"signed_in": True}, headers={"Set-Cookie": f"freeisp_session={token}; Max-Age=3600; Path=/; Secure; HttpOnly; SameSite=Strict"})
+        secure = "; Secure" if self.server.is_tls else ""
+        self.reply(200, {"signed_in": True}, headers={"Set-Cookie": f"freeisp_session={token}; Max-Age=3600; Path=/; HttpOnly; SameSite=Strict" + secure})
 
 
 def main():
@@ -239,12 +244,21 @@ def main():
     network.start(controller.saved)
     server = ThreadingHTTPServer(("0.0.0.0", 8443), Handler)
     server.controller = controller
+    server.is_tls = True
     server.credentials = json.loads((DATA / "admin.json").read_text())
     server.sessions, server.attempts, server.sessions_lock = {}, [], threading.Lock()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(DATA / "tls.crt", DATA / "tls.key")
     server.socket = context.wrap_socket(server.socket, server_side=True)
+    # The maintenance network is an isolated QEMU backend exposed only on host
+    # loopback. Remote users reach it through encrypted SSH port forwarding.
+    # LAN management stays HTTPS; this listener is not reachable from WAN/LAN.
+    maintenance = ThreadingHTTPServer(("10.78.0.15", 8080), Handler)
+    maintenance.controller, maintenance.credentials = controller, server.credentials
+    maintenance.sessions, maintenance.attempts, maintenance.sessions_lock = {}, [], threading.Lock()
+    maintenance.is_tls = False
+    threading.Thread(target=maintenance.serve_forever, daemon=True).start()
     print("FREEISP_READY: HTTPS management, configuration recovery and IPv4 router started", flush=True)
     server.serve_forever()
 
