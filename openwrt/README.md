@@ -25,6 +25,10 @@ SQM interface shaping; per-host traffic accounting (nlbwmon); diagnostics;
 system/kernel logs; package management; backup/restore/firmware tools; authenticated commands.
 Installed does not mean every protocol has been integration-tested or configured.
 
+The [FreeISP Log page](LOGS.md) reads the real system log buffer with live polling,
+Freeze/Resume, filters and text download. Its documentation distinguishes browser
+regression checks from tests against an actual OpenWrt guest.
+
 PPPoE **server**, subscriber accounts/plans, captive hotspot, per-subscriber enforcement,
 AP controller and the dashboard compatibility contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif

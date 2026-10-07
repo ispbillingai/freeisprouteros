@@ -1,0 +1,8 @@
+{
+  "admin/status/freeisp_log": {
+    "title": "FreeISP Log",
+    "order": 4,
+    "action": {"type": "view", "path": "freeisp/log"},
+    "depends": {"acl": ["luci-app-freeisp-log"]}
+  }
+}

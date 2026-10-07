@@ -1,0 +1,6 @@
+{
+  "luci-app-freeisp-log": {
+    "description": "Read FreeISP router system and kernel logs",
+    "read": {"ubus": {"log": ["read"]}}
+  }
+}
