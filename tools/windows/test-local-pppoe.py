@@ -117,9 +117,10 @@ uci set network.wan.username=lab-customer
 uci set network.wan.password=''' + shlex.quote(account_password) + '''
 uci set network.wan.service=FreeISP-Lab-PPPoE
 uci set network.wan.ipv6=0
-uci set network.wan.mtu=1492
+uci -q delete network.wan.mtu || true
 uci commit network
 ifdown wan
+ip link set dev eth0 mtu 1500
 ifup wan
 '''
         run(customer, 'sh -s', command)

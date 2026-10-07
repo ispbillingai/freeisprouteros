@@ -68,6 +68,9 @@ def main():
              '--uart1', '0x3F8', '4', '--uart-mode1', 'file', folder / 'serial.log')
         if index:
             vbox('modifyvm', name, '--intnet1', 'FreeISP-Lab-LAN')
+        else:
+            # The synthetic WAN speed-test server binds only to Windows localhost.
+            vbox('modifyvm', name, '--nat-localhostreachable1', 'on')
         vbox('storagectl', name, '--name', 'SATA', '--add', 'sata', '--controller', 'IntelAhci')
         vbox('storageattach', name, '--storagectl', 'SATA', '--port', 0, '--device', 0,
              '--type', 'hdd', '--medium', disk)
