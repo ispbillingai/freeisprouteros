@@ -12,7 +12,7 @@ def write_manifest(root):
     for path in sorted(p for p in root.rglob('*') if p.is_file() and p != target):
         relative = path.relative_to(root).as_posix()
         # Version UI, permissions and backend together, without hashing private state.
-        if not relative.startswith(('www/luci-static/', 'usr/share/luci/', 'usr/share/rpcd/', 'usr/bin/freeisp-', 'usr/lib/freeisp/', 'usr/libexec/')):
+        if not relative.startswith(('www/luci-static/', 'usr/share/luci/', 'usr/share/rpcd/', 'usr/bin/freeisp-', 'usr/lib/freeisp/', 'usr/libexec/', 'usr/share/freeisp/', 'etc/init.d/', 'etc/uci-defaults/')):
             continue
         digest.update(relative.encode('utf-8') + b'\0')
         digest.update(path.read_bytes().replace(b'\r\n', b'\n'))

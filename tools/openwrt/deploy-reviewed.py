@@ -20,12 +20,17 @@ import subprocess
 import sys
 import tarfile
 import time
+import urllib.error
 import urllib.request
 
 
 PACKAGES = ['ip-bridge', 'tc-full', 'rp-pppoe-server', 'python3',
-            'kmod-sched-core', 'kmod-sched-act-police']
-DEFAULTS = ['98-freeisp-wifi', '99-freeisp-files', '98-freeisp-pppoe']
+            'kmod-sched-core', 'kmod-sched-act-police', 'nftables-json',
+            'coreutils-timeout', 'iputils-ping', 'iperf3', 'fping',
+            'etherwake', 'msmtp', 'ca-bundle', 'vsftpd', 'ucode', 'ucode-mod-fs',
+            'ucode-mod-ubus', 'rpcd-mod-file', 'luci-app-firewall', 'conntrack']
+DEFAULTS = ['98-freeisp-wifi', '99-freeisp-files', '98-freeisp-pppoe',
+            '98-freeisp-hotspot', '98-freeisp-tools', '98-freeisp-api', '99-freeisp-ftp']
 
 
 def run(args, **kwargs):
@@ -82,6 +87,7 @@ def configuration_hash(args, password, port):
     # Return only a digest, never network settings or subscriber credentials.
     command = "{ find /etc/config -type f -exec sha256sum '{}' ';'; " \
               "[ ! -f /etc/freeisp/pppoe.json ] || sha256sum /etc/freeisp/pppoe.json; " \
+              "[ ! -f /etc/freeisp/hotspot.json ] || sha256sum /etc/freeisp/hotspot.json; " \
               "} | LC_ALL=C sort | sha256sum"
     value = ssh(args, password, port, command).decode().split()[0]
     if not re.fullmatch('[a-f0-9]{64}', value):
@@ -103,9 +109,12 @@ def overlay(args):
         allowed = (relative.startswith(('www/luci-static/freeisp/', 'www/luci-static/freeisp-night/',
                     'www/luci-static/resources/freeisp/', 'www/luci-static/resources/view/freeisp/',
                     'usr/share/luci/menu.d/luci-app-freeisp', 'usr/share/rpcd/acl.d/luci-app-freeisp',
+                    'usr/share/rpcd/acl.d/freeisp-api',
                     'usr/lib/freeisp/', 'usr/libexec/freeisp-', 'usr/libexec/rpcd/freeisp.'))
-                   or relative in ['usr/bin/freeisp-command-line', 'usr/bin/freeisp-resources',
-                                   'etc/init.d/freeisp-pppoe']
+                   or relative in ['usr/bin/freeisp-command-line', 'usr/bin/freeisp-resources', 'usr/bin/freeisp-firewall-status', 'usr/bin/freeisp-api',
+                                   'etc/init.d/freeisp-pppoe', 'etc/init.d/freeisp-hotspot',
+                                   'etc/init.d/freeisp-tools', 'etc/init.d/freeisp-api', 'etc/init.d/freeisp-ftp', 'usr/share/freeisp/netwatch.uc',
+                                   'lib/upgrade/keep.d/freeisp-hotspot']
                    or relative in ['etc/uci-defaults/' + name for name in DEFAULTS])
         if allowed:
             if path.is_symlink():
@@ -147,17 +156,61 @@ def stop_stage(args, password, state):
     raise RuntimeError('Staged guest did not power off; refusing disk activation.')
 
 
+def wait_rpc_objects(args, password, port, objects, timeout=120):
+    """rpcd starts before its executable Python plugins finish registering."""
+    expected = set(objects)
+    deadline = time.monotonic() + timeout
+    missing = expected
+    while time.monotonic() < deadline:
+        try:
+            registered = set(ssh(args, password, port, 'ubus list', timeout=20).decode().splitlines())
+            missing = expected - registered
+            if not missing:
+                return
+        except (RuntimeError, subprocess.TimeoutExpired):
+            pass
+        time.sleep(1)
+    raise RuntimeError('RPC registration timed out: ' + ', '.join(sorted(missing)))
+
+
 def verify(args, password, port, http_port, manifest):
     ready(args, password, port)
+    wait_rpc_objects(args, password, port, ('system', 'freeisp.pppoe', 'freeisp.hotspot', 'freeisp.tools'))
     checks = {}
     def check(name, condition):
         checks[name] = bool(condition)
+        print(('PASS ' if condition else 'FAIL ') + name, flush=True)
         if not condition:
             raise RuntimeError('Verification failed: ' + name)
     board = json.loads(ssh(args, password, port, 'ubus call system board'))
     check('openwrt_x86', board.get('release', {}).get('target') == 'x86/64')
     data = json.loads(ssh(args, password, port, 'ubus call freeisp.pppoe get'))
     check('pppoe_rpc_available', 'config' in data and data.get('status', {}).get('available'))
+    # procd restart returns before Python has opened the Hotspot management
+    # socket, especially on TCG. Wait for a real successful snapshot.
+    hotspot = {}
+    for _ in range(30):
+        try:
+            hotspot = json.loads(ssh(args, password, port, 'ubus call freeisp.hotspot snapshot'))
+            if hotspot.get('ok') and hotspot.get('runtime', {}).get('available'):
+                break
+        except (RuntimeError, ValueError, subprocess.TimeoutExpired):
+            pass
+        time.sleep(1)
+    check('hotspot_rpc_available', hotspot.get('ok') and hotspot.get('runtime', {}).get('available'))
+    check('hotspot_collections', set(hotspot.get('collections', {})) == {
+        'servers', 'server_profiles', 'users', 'user_profiles', 'active', 'hosts',
+        'ip_bindings', 'service_ports', 'walled_garden', 'walled_garden_ip', 'cookies'})
+    tools_status = json.loads(ssh(args, password, port, 'ubus call freeisp.tools status'))
+    check('tools_rpc_available', tools_status.get('ok') and tools_status.get('services_available'))
+    catalog = {row['id']: row for row in tools_status.get('tools', [])}
+    core_tools = {'btest', 'bandwidth', 'email', 'flood', 'graph', 'scan', 'netwatch',
+                  'sniffer', 'ping', 'speed', 'profile', 'telnet', 'torch', 'traceroute',
+                  'generator', 'monitor', 'wol'}
+    check('tools_core_dependencies', len(catalog) == 20 and all(catalog.get(name, {}).get('available') for name in core_tools))
+    tools_ping = json.loads(ssh(args, password, port,
+        "ubus call freeisp.tools run '{\"tool\":\"ping\",\"host\":\"127.0.0.1\"}'"))
+    check('tools_ping_backend', tools_ping.get('ok'))
     bridge = json.loads(ssh(args, password, port, '/usr/libexec/freeisp-bridge-status'))
     check('bridge_backend', all(bridge.get(key, {}).get('code') == 0 for key in ('link', 'fdb', 'vlan')))
     interfaces = json.loads(ssh(args, password, port, 'ubus call network.interface dump'))
@@ -165,8 +218,11 @@ def verify(args, password, port, http_port, manifest):
                                            for row in interfaces.get('interface', []))
                                        for name in ('wan', 'lan', 'management')))
     ssh(args, password, port, 'set -eu; fw4 check; test -d /srv/freeisp-files; '
-        'test -f /etc/config/freeisp_wifi; /etc/init.d/freeisp-pppoe enabled; '
-        '/etc/init.d/freeisp-pppoe running; command -v tc; command -v bridge')
+        'test -f /etc/config/freeisp_wifi; test -f /etc/config/freeisp_tools; '
+        '/etc/init.d/freeisp-pppoe enabled; /etc/init.d/freeisp-pppoe running; '
+        '/etc/init.d/freeisp-hotspot enabled; /etc/init.d/freeisp-hotspot running; '
+        '/etc/init.d/freeisp-tools enabled; '
+        'command -v tc; command -v bridge; command -v nft')
     check('runtime_services_and_firewall', True)
     ssh(args, password, port, 'set -eu; test -x /usr/bin/freeisp-command-line; '
         'sh -n /usr/bin/freeisp-command-line; '
@@ -176,14 +232,24 @@ def verify(args, password, port, http_port, manifest):
         '/usr/bin/freeisp-command-line ping 127.0.0.1 1 >/dev/null; '
         'if /usr/bin/freeisp-command-line routes4 unexpected >/dev/null 2>&1; then exit 1; fi')
     check('command_line_diagnostics', True)
+    ssh(args, password, port, 'set -eu; test -x /usr/bin/freeisp-firewall-status; test -x /usr/bin/freeisp-api; test -x /etc/init.d/freeisp-ftp; test -f /etc/config/freeisp_api; test -f /etc/config/freeisp_ftp; python3 -m py_compile /usr/lib/freeisp/api_server.py')
+    check('ip_services_and_firewall_installed', True)
     base = 'http://127.0.0.1:' + str(http_port)
     with urllib.request.urlopen(base + '/luci-static/freeisp/release.json', timeout=20) as response:
         check('published_revision', json.load(response) == manifest)
-    for page in ('bridge', 'command-line', 'files', 'log', 'pppoe', 'queues', 'wifi-profiles', 'wifi-status'):
+    for page in ('bridge', 'command-line', 'files', 'hotspot', 'log', 'pppoe', 'queues', 'tools', 'wifi-profiles', 'wifi-status'):
         with urllib.request.urlopen(base + '/luci-static/resources/view/freeisp/' + page + '.js', timeout=20) as response:
             check('asset_' + page, response.status == 200 and len(response.read()) > 100)
-    with urllib.request.urlopen(base + '/cgi-bin/luci/', timeout=30) as response:
-        check('luci_responds', response.status == 200 and len(response.read()) > 100)
+    try:
+        with urllib.request.urlopen(base + '/cgi-bin/luci/', timeout=30) as response:
+            check('luci_responds', response.status == 200 and len(response.read()) > 100)
+    except urllib.error.HTTPError as error:
+        # LuCI commonly uses HTTP 403 to serve its unauthenticated sign-in page.
+        # Accept that specific form, never a generic denial or backend error.
+        body = error.read(512 * 1024).decode('utf-8', errors='replace')
+        login_fields = all(re.search(r'\bname\s*=\s*[\"\x27]' + field + r'[\"\x27]', body, re.I)
+                           for field in ('luci_username', 'luci_password'))
+        check('luci_responds', error.code == 403 and login_fields)
     return checks
 
 
@@ -327,8 +393,14 @@ def main():
         print('Installing signed distribution packages into the isolated stage.', flush=True)
         ssh(args, password, 2225, 'apk update && apk add ' + ' '.join(PACKAGES), timeout=420)
         ssh(args, password, 2225, 'tar -xzf - -C /', content)
-        wifi = args.source / 'openwrt/files/etc/config/freeisp_wifi'
-        ssh(args, password, 2225, 'if [ ! -e /etc/config/freeisp_wifi ]; then umask 077; cat > /etc/config/freeisp_wifi; else cat >/dev/null; fi', wifi.read_bytes())
+        # Supply only missing feature defaults. Never replace an existing UCI
+        # file, subscriber database, portal customization or usage checkpoint.
+        for config_name in ('freeisp_wifi', 'freeisp_tools', 'freeisp_api', 'freeisp_ftp'):
+            source_config = args.source / 'openwrt/files/etc/config' / config_name
+            target_config = '/etc/config/' + config_name
+            ssh(args, password, 2225,
+                'if [ ! -e ' + target_config + ' ]; then umask 077; cat > ' + target_config +
+                '; else cat >/dev/null; fi', source_config.read_bytes())
         patch = '''import pathlib,re,sys
 revision=sys.argv[1]
 for theme in ('freeisp','freeisp-night'):
@@ -343,7 +415,8 @@ for theme in ('freeisp','freeisp-night'):
 '''
         ssh(args, password, 2225, 'python3 - ' + shlex.quote(manifest['revision']), patch.encode())
         setup = 'set -eu\n' + '\n'.join('/etc/uci-defaults/' + name for name in DEFAULTS)
-        setup += '\n/etc/init.d/firewall reload\n/etc/init.d/freeisp-pppoe restart\n/etc/init.d/rpcd restart\n'
+        setup += '\n/etc/init.d/firewall reload\n/etc/init.d/freeisp-pppoe restart\n'
+        setup += '/etc/init.d/freeisp-hotspot restart\n/etc/init.d/freeisp-tools restart\n/etc/init.d/freeisp-api restart\n/etc/init.d/freeisp-ftp restart\n/etc/init.d/rpcd restart\n'
         setup += 'rm -f /tmp/luci-indexcache /tmp/luci-modulecache/* /tmp/luci-indexcache.*\nsync\n'
         ssh(args, password, 2225, 'sh -s', setup.encode(), timeout=90)
         state['checks'] = verify(args, password, 2225, 8892, manifest)
