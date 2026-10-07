@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 """Root-only rpcd management socket and guest-facing captive login service."""
+import sys
+from hotspot_rpc import SOCKET_PATH, MAX_REQUEST, METHODS, read_json, rpc
+
+# rpcd starts a process per call. Forward to the resident daemon before importing
+# its HTTP portal, firewall engine, and worker machinery.
+if __name__ == "__main__" and len(sys.argv) >= 2 and sys.argv[1] == "rpc":
+    sys.exit(rpc(sys.argv[2:]))
+
 import argparse
 import hashlib
 import hmac
@@ -12,7 +20,6 @@ import secrets
 import signal
 import socket
 import socketserver
-import sys
 import threading
 import time
 from urllib.parse import parse_qs, urlsplit
@@ -20,9 +27,6 @@ from urllib.parse import parse_qs, urlsplit
 from hotspot import Engine, HotspotError
 from hotspot_runtime import Runtime
 
-SOCKET_PATH = "/var/run/freeisp-hotspot.sock"
-MAX_REQUEST = 65536
-METHODS = {"snapshot": {}, "mutate": {"action": "", "payload": ""}}
 ACTIONS = {"save", "remove", "set_enabled", "setup", "reset_html", "disconnect", "remove_cookies"}
 
 
@@ -30,35 +34,6 @@ def failure(exc):
     if isinstance(exc, HotspotError):
         return exc.as_dict()
     return {"ok": False, "error": {"code": "runtime", "message": str(exc)[:400]}}
-
-
-def read_json(stream, limit=MAX_REQUEST):
-    # rpcd writes one JSON value WITHOUT a newline and keeps stdin open while
-    # waiting for output. read1 consumes only currently available bytes.
-    source = getattr(stream, "buffer", stream)
-    read = getattr(source, "read1", None)
-    accumulated = bytearray()
-    decoder = json.JSONDecoder()
-    while len(accumulated) <= limit:
-        part = read(min(4096, limit + 1 - len(accumulated))) if read else source.read(1)
-        if not part:
-            raise ValueError("Incomplete JSON request")
-        if isinstance(part, str):
-            part = part.encode("utf-8")
-        accumulated.extend(part)
-        if len(accumulated) > limit:
-            raise ValueError("Request is too large")
-        try:
-            raw = accumulated.decode("utf-8").lstrip()
-            value, end = decoder.raw_decode(raw)
-        except (ValueError, UnicodeError):
-            continue
-        if raw[end:].strip():
-            raise ValueError("Request contains trailing data")
-        if not isinstance(value, dict):
-            raise ValueError("Request must be a JSON object")
-        return value
-    raise ValueError("Request is too large")
 
 
 def dispatch(engine, method, args):
@@ -378,30 +353,7 @@ def serve(socket_path=SOCKET_PATH, config_path="/etc/freeisp/hotspot.json", stat
         os.unlink(socket_path)
 
 
-def rpc(argv, socket_path=SOCKET_PATH):
-    if argv == ["list"]:
-        print(json.dumps(METHODS))
-        return 0
-    if len(argv) != 2 or argv[0] != "call" or argv[1] not in METHODS:
-        print(json.dumps({"ok": False, "error": {"code": "unknown_action", "message": "Unknown rpcd method"}}))
-        return 0
-    try:
-        args = read_json(sys.stdin)
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-            client.settimeout(20)
-            client.connect(socket_path)
-            client.sendall((json.dumps({"method": argv[1], "args": args}) + "\n").encode())
-            with client.makefile("r", encoding="utf-8") as response:
-                result = read_json(response, limit=4 * 1024 * 1024)
-        print(json.dumps(result))
-    except Exception as exc:
-        print(json.dumps(failure(exc)))
-    return 0
-
-
 if __name__ == "__main__":
-    if len(sys.argv) >= 2 and sys.argv[1] == "rpc":
-        sys.exit(rpc(sys.argv[2:]))
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["serve"])
     parser.add_argument("--socket", default=SOCKET_PATH)

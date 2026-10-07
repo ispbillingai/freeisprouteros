@@ -13,12 +13,14 @@ function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function identifier() { var values = new Uint8Array(6); window.crypto.getRandomValues(values); return Array.from(values, function(n) { return n.toString(16).padStart(2, '0'); }).join(''); }
 
 return view.extend({
-    load: function() { return get().then(checked).catch(function(e) { return {error: e.message || 'Could not connect to the PPPoE service.'}; }); },
+    // Render controls first. A slow router must not hide the entire page.
+    load: function() { return Promise.resolve(null); },
     render: function(initial) {
         var stylesheet = E('link', {rel: 'stylesheet', href: L.resource('freeisp/pppoe.css') + '?v=2'});
-        if (initial.error) return E('div', {'class': 'pp-window'}, [stylesheet, E('h2', {}, 'PPPoE'), E('p', {role: 'alert'}, initial.error), E('p', {}, 'Check the router connection and that FreeISP PPPoE support is installed.'), E('button', {type: 'button', 'class': 'pp-button', click: function() { window.location.reload(); }}, 'Retry')]);
+        var loaded = !!(initial && initial.config), loadError = '', loadingConfig = false;
+        initial = initial || {config: {servers: [], secrets: [], profiles: [], pools: []}, interfaces: [], status: {servers: [], sessions: []}};
         var baseline = clone(initial.config), draft = clone(baseline), revision = initial.revision, live = initial.status;
-        var devices = initial.interfaces, active = 'servers', busy = false, uncertain = false, connected = true;
+        var devices = initial.interfaces, active = 'servers', busy = false, uncertain = false, connected = loaded;
         var readonly = !L.hasViewPermission();
         var sections = [['servers', 'PPPoE Servers'], ['secrets', 'Secrets'], ['profiles', 'Profiles'], ['pools', 'Address Pools'], ['active', 'Active Connections']];
         function button(label, handler, primary) { return E('button', {type: 'button', 'class': 'pp-button' + (primary ? ' pp-primary' : ''), click: handler}, label); }
@@ -26,7 +28,7 @@ return view.extend({
         function changed() { return JSON.stringify(baseline) !== JSON.stringify(draft); }
         function label(kind, id) { return (draft[kind].find(function(r) { return r.id === id; }) || {}).name || '—'; }
         function options(kind, empty) { return (empty ? [['', empty]] : [['', 'Select…']]).concat(draft[kind].map(function(r) { return [r.id, r.name]; })); }
-        function editable() { return !readonly && !busy && !uncertain; }
+        function editable() { return loaded && !readonly && !busy && !uncertain; }
         function editor(kind, row) {
             var record = clone(row || {id: identifier(), enabled: true}), fields = {}, specs;
             var defaultProfile = draft.profiles.find(function(p) { return p.name === 'default'; }) || draft.profiles[0];
@@ -148,7 +150,7 @@ return view.extend({
                 })]; });
             }
             rows = rows.filter(function(row) { return row.some(function(v) { return (typeof v === 'string' || typeof v === 'number') && String(v).toLowerCase().includes(query); }); });
-            var empty = query ? 'No matching records.' : active === 'active' ? (connected ? 'No active PPPoE connections.' : 'Connection unavailable. Session status is unknown.') : 'No ' + sections.find(function(s) { return s[0] === active; })[1].toLowerCase() + ' configured.';
+            var empty = !loaded ? (loadError ? 'Saved settings are unavailable. Use Retry to reconnect.' : 'Waiting for saved PPPoE settings…') : query ? 'No matching records.' : active === 'active' ? (connected ? 'No active PPPoE connections.' : 'Connection unavailable. Session status is unknown.') : 'No ' + sections.find(function(s) { return s[0] === active; })[1].toLowerCase() + ' configured.';
             table.replaceChildren(E('table', {'class': 'pp-table'}, [E('thead', {}, E('tr', {}, columns.map(function(c) { return E('th', {scope: 'col'}, c); }))), E('tbody', {}, rows.length ? rows.map(function(row) { return E('tr', {}, row.map(function(v) { return E('td', {}, typeof v === 'number' ? String(v) : v); })); }) : [E('tr', {}, E('td', {colspan: columns.length, 'class': 'pp-empty'}, empty))])]));
             table.querySelectorAll('button').forEach(function(b) { b.disabled = !editable() || (active === 'active' && !connected); });
         }
@@ -158,15 +160,27 @@ return view.extend({
             var controls = [];
             if (active !== 'active') { var add = button('+ Add ' + ({servers: 'server', secrets: 'secret', profiles: 'profile', pools: 'pool'}[active]), function() { editor(active); }, true); add.disabled = !editable(); controls.push(add); }
             controls.push(search); toolbar.replaceChildren.apply(toolbar, controls);
-            health.textContent = !connected ? 'Connection lost · last received data' : !live.available ? 'PPPoE service packages are missing' : 'Live · refreshes every 5 seconds';
+            health.setAttribute('role', loadError ? 'alert' : 'status');
+            health.textContent = !loaded ? (loadError || 'Getting saved configuration…') : !connected ? 'Connection lost · last received data' : !live.available ? 'PPPoE service packages are missing' : 'Live · refreshes every 5 seconds';
             note.textContent = active === 'pools' ? 'Pools reserve one stable address per account, including disabled accounts. Pools must not overlap each other or existing router networks.' : active === 'profiles' ? 'Profiles control subscriber addresses, DNS and upload/download limits. One connection per account. Rate limits apply when the subscriber connects.' : active === 'servers' ? 'Select an existing Ethernet, bridge or VLAN interface. Status reflects the last applied settings; pending edits take effect after Save & apply.' : active === 'secrets' ? 'Secrets authenticate subscribers using CHAP. Passwords are never returned by the router. Blank passwords on edit keep the existing value.' : 'Traffic totals are from the subscriber’s perspective. Last received values remain visible if the router connection fails.';
             var apply = button(busy ? 'Applying…' : 'Save & apply', confirmApply, true), discard = button('Discard edits', function() { draft = clone(baseline); draw(); });
             apply.disabled = !editable() || !changed() || !connected; discard.disabled = !changed() || busy || uncertain;
-            footer.replaceChildren(E('span', {role: 'status'}, uncertain ? 'Save result unknown · reload to confirm' : readonly ? 'Read-only access' : changed() ? 'Unsaved changes' : 'Settings saved'), button('Reload', function() { if (!changed() || window.confirm('Discard unsaved changes and reload?')) window.location.reload(); }), discard, apply);
+            footer.replaceChildren(E('span', {role: 'status'}, !loaded ? 'Configuration not received' : uncertain ? 'Save result unknown · reload to confirm' : readonly ? 'Read-only access' : changed() ? 'Unsaved changes' : 'Settings saved'), button(loadError ? 'Retry' : 'Reload', function() { if (!loaded) readConfig(); else if (!changed() || window.confirm('Discard unsaved changes and reload?')) window.location.reload(); }), discard, apply);
             drawTable();
         }
+        function readConfig() {
+            if (loadingConfig) return Promise.resolve();
+            loadingConfig = true; loadError = ''; draw();
+            return get().then(checked).then(function(value) {
+                if (!value || !value.config || !value.status || !Array.isArray(value.interfaces)) throw new Error('Invalid PPPoE settings response.');
+                baseline = clone(value.config); draft = clone(baseline); revision = value.revision;
+                live = value.status; devices = value.interfaces; loaded = true; connected = true;
+            }).catch(function(error) { loadError = error.message || 'Could not connect to the PPPoE service.'; connected = false; })
+              .finally(function() { loadingConfig = false; draw(); });
+        }
         draw();
-        poll.add(function() { if (busy) return Promise.resolve(); return status().then(checked).then(function(value) { live = value; connected = true; draw(); }).catch(function() { connected = false; draw(); }); }, 5);
+        if (!loaded) readConfig();
+        poll.add(function() { if (!loaded || busy || document.hidden || !root.isConnected) return Promise.resolve(); return status().then(checked).then(function(value) { live = value; connected = true; draw(); }).catch(function() { connected = false; draw(); }); }, 5);
         window.addEventListener('beforeunload', function(e) { if (changed()) { e.preventDefault(); e.returnValue = ''; } });
         return root;
     },

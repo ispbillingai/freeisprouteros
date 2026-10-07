@@ -10,8 +10,11 @@ var mutate = rpc.declare({object:'freeisp.hotspot',method:'mutate',params:['acti
 function checked(response) { if (!response || response.ok===false || response.error) {var error=new Error(response && response.error && response.error.message || 'The router could not complete this request.');error.code=response && response.error && response.error.code;throw error;} return response; }
 
 return view.extend({
-    load:function() { return snapshot().then(checked).catch(function(error){return {revision:null,collections:{},runtime:{available:false,error:error.message},loadError:error.message};}); },
+    // Show the complete workspace while the router retrieves its saved state.
+    load:function() { return Promise.resolve(null); },
     render:function(initial) {
+        var loaded=!!(initial && initial.revision!=null), loadError='';
+        initial=initial || {revision:null,collections:{},runtime:{available:null},interfaces:[]};
         var self=this, state=initial, current='servers', selected={}, search='', busy=false, refreshing=false, dialogOpen=false, generation=0, root;
         var canWrite=typeof L.hasViewPermission==='function' && L.hasViewPermission();
         function canEdit() { return canWrite && state.can_write!==false; }
@@ -32,7 +35,7 @@ return view.extend({
         }
         function message(text,kind) {var node=root.querySelector('.hs-notice');node.textContent=text || '';node.className='hs-notice'+(kind?' hs-'+kind:'');node.hidden=!text;node.setAttribute('role',kind==='error'?'alert':'status');}
         function button(text,action,attrs) {return E('button',Object.assign({type:'button',click:action},attrs || {}),text);}
-        function writable() {return canEdit() && state.revision!=null && !busy;}
+        function writable() {return loaded && canEdit() && state.revision!=null && !busy;}
         function updateToolbar() {
             var count=chosen().length,s=schema(),can=writable(),runtime=!!(state.runtime && state.runtime.available);
             root.querySelectorAll('[data-action]').forEach(function(b){var a=b.dataset.action;b.hidden=(['add','edit','enable','disable','remove'].indexOf(a)>=0 && !!s.live) || (a==='disconnect'&&current!=='active') || (a==='remove_cookies'&&current!=='cookies') || (['setup','reset_html'].indexOf(a)>=0&&current!=='servers');b.disabled=!can || (['edit','reset_html'].indexOf(a)>=0&&count!==1) || (['enable','disable','remove','disconnect','remove_cookies'].indexOf(a)>=0&&!count) || (['disconnect','remove_cookies'].indexOf(a)>=0&&!runtime);});
@@ -55,20 +58,20 @@ return view.extend({
                 s.columns.forEach(function(key,index){var text=labelValue(row,key);tr.appendChild(E('td',{title:text},index===0&&!s.live?button(text,function(){openEditor(s,row);},{'class':'hs-row-link','aria-label':(canEdit()?'Edit ':'View ')+s.singular.toLowerCase()+' '+title}):text));});
                 body.appendChild(tr);
             });
-            if(!visible.length)body.appendChild(E('tr',{},E('td',{colspan:s.columns.length+(s.live?1:2),'class':'hs-empty'},search?'No matching '+s.label.toLowerCase()+'.':s.live?(state.runtime && state.runtime.available?'No '+s.label.toLowerCase()+' right now.':'Live Hotspot information is unavailable.'): 'No '+s.label.toLowerCase()+' yet. Use Add to create one.')));
+            if(!visible.length)body.appendChild(E('tr',{},E('td',{colspan:s.columns.length+(s.live?1:2),'class':'hs-empty'},!loaded?(loadError?'Saved settings are unavailable. Use Refresh to reconnect.':'Waiting for saved Hotspot settings…'):search?'No matching '+s.label.toLowerCase()+'.':s.live?(state.runtime && state.runtime.available?'No '+s.label.toLowerCase()+' right now.':'Live Hotspot information is unavailable.'): 'No '+s.label.toLowerCase()+' yet. Use Add to create one.')));
             table.appendChild(body);var wrap=root.querySelector('.hs-table-wrap');wrap.replaceChildren(table);
-            root.querySelector('.hs-count').textContent=visible.length+' of '+all.length+' '+s.label.toLowerCase();
+            root.querySelector('.hs-count').textContent=loaded?visible.length+' of '+all.length+' '+s.label.toLowerCase():'Configuration not received';
             root.querySelector('.hs-tab-description').textContent=({servers:'Manage captive portal servers and their network interfaces.',server_profiles:'Choose the sign-in address, login port and remembered sign-in settings.',users:'Manage local sign-in accounts, quotas and server access.',user_profiles:'Set concurrent sessions, timeouts and speed limits.',active:'Connected users and their current session usage.',hosts:'Devices discovered on the Hotspot network.',ip_bindings:'Require sign-in, bypass it or block specific addresses.',service_ports:'Allow signed-in users to access specific services on the router.',walled_garden:'Allow or deny exact host names before sign-in. Rules use resolved IPv4 addresses, which can be shared by other sites.',walled_garden_ip:'Allow or deny destination addresses before sign-in.',cookies:'Remembered sign-ins stored by the Hotspot.'})[current];
             updateToolbar();
         }
         function displayStatus() {
-            var runtime=state.runtime || {},status=root.querySelector('.hs-runtime');status.textContent=runtime.available?'Hotspot service available':'Hotspot service unavailable';status.classList.toggle('is-up',!!runtime.available);
-            var warning=root.querySelector('.hs-runtime-warning');warning.textContent=runtime.available?'':runtime.error || 'Live sessions are unavailable. Saved settings can still be managed.';warning.hidden=!!runtime.available;
+            var runtime=state.runtime || {},status=root.querySelector('.hs-runtime');status.textContent=!loaded?(loadError?'Configuration unavailable':'Getting saved configuration…'):runtime.available?'Hotspot service available':'Hotspot service unavailable';status.classList.toggle('is-up',!!runtime.available);
+            var warning=root.querySelector('.hs-runtime-warning');warning.textContent=runtime.available?'':runtime.error || 'Live sessions are unavailable. Saved settings can still be managed.';warning.hidden=!loaded || !!runtime.available;
             var readOnly=root.querySelector('.hs-readonly');readOnly.hidden=canEdit();
         }
         function refresh(manual) {
             if(refreshing||busy)return Promise.resolve();refreshing=true;var request=++generation;updateToolbar();
-            return snapshot().then(checked).then(function(result){if(request!==generation)return;state=result;displayStatus();showTable();root.querySelector('.hs-updated').textContent='Updated '+new Date().toLocaleTimeString();if(manual)message('Hotspot information refreshed.','success');}).catch(function(error){message('Could not refresh: '+error.message,'error');}).finally(function(){refreshing=false;updateToolbar();});
+            return snapshot().then(checked).then(function(result){if(request!==generation)return;state=result;loaded=true;loadError='';displayStatus();showTable();root.querySelector('.hs-updated').textContent='Updated '+new Date().toLocaleTimeString();if(manual)message('Hotspot information refreshed.','success');}).catch(function(error){loadError=error.message;displayStatus();showTable();message((loaded?'Could not refresh: ':'Could not load Hotspot settings: ')+error.message,'error');}).finally(function(){refreshing=false;updateToolbar();});
         }
         function perform(action,payload,success) {
             if(!writable())return Promise.reject(new Error('You do not have permission to change Hotspot settings.'));
@@ -131,7 +134,7 @@ return view.extend({
                 ]),E('p',{'class':'hs-tab-description'}),E('div',{'class':'hs-table-wrap',tabindex:0,'aria-label':'Scrollable Hotspot table'}),E('div',{'class':'hs-footer'},[E('span',{'class':'hs-count'}),E('span',{'class':'hs-selection'}),E('span',{'class':'hs-updated'}),E('label',{'class':'hs-live'},[E('input',{type:'checkbox',checked:true,'aria-label':'Refresh live information every 10 seconds'}),' Live refresh'])])
             ])
         ]);
-        displayStatus();showTable();if(initial.loadError)message('Could not load Hotspot settings: '+initial.loadError,'error');
+        displayStatus();showTable();if(!loaded)refresh(false);
         poll.add(function(){if(root.isConnected&&!dialogOpen&&root.querySelector('.hs-live input').checked&&!document.hidden)return refresh(false);return Promise.resolve();},10);
         self.refresh=refresh;return root;
     },handleSaveApply:null,handleSave:null,handleReset:null

@@ -31,14 +31,25 @@ invalid('servers','address_pool','10.42.0.0/31');invalid('servers','address_pool
 assert.equal(data.bytes(1048576),'1.0 MiB');assert.equal(data.duration(3661),'1h 1m');
 
 async function run(){
-    const fixture=await start(),readonly=await start({readOnly:true}),broken=await start({snapshotFailure:'Router is unreachable'});
+    const fixture=await start(),readonly=await start({readOnly:true}),broken=await start({snapshotFailure:'Router is unreachable'}),delayed=await start({deferLoad:true});
     let browser;
-    try{browser=await chromium.launch({headless:true,...(process.env.FREEISP_BROWSER_CHANNEL?{channel:process.env.FREEISP_BROWSER_CHANNEL}:{})});}catch(error){await fixture.close();await readonly.close();await broken.close();throw error;}
+    try{browser=await chromium.launch({headless:true,...(process.env.FREEISP_BROWSER_CHANNEL?{channel:process.env.FREEISP_BROWSER_CHANNEL}:{})});}catch(error){await fixture.close();await readonly.close();await broken.close();await delayed.close();throw error;}
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
     const tab=label=>page.getByRole('tab',{name:label,exact:true}),toolbar=name=>page.locator('.hs-toolbar').getByRole('button',{name,exact:true}),dialog=()=>page.getByRole('dialog');
     async function fill(values){for(const [key,value] of Object.entries(values)){const field=dialog().locator('[name="'+key+'"]');if(typeof value==='boolean')await field.setChecked(value);else if(await field.evaluate(n=>n.tagName)==='SELECT')await field.selectOption(value);else await field.fill(value);}}
     async function closed(){await page.waitForFunction(()=>!document.querySelector('dialog'));}
     try{
+        await page.goto(delayed.url);
+        await tab('Servers').waitFor({timeout:1500});
+        assert.equal(await page.getByRole('tab').count(),11,'all Hotspot tabs render before saved settings arrive');
+        assert(await toolbar('Add').isDisabled());assert(await toolbar('Hotspot Setup').isDisabled());
+        assert.match(await page.locator('.hs-count').innerText(),/Configuration not received/);
+        assert.match(await page.locator('.hs-empty').innerText(),/Waiting for saved/);
+        assert.doesNotMatch(await page.locator('.hs-runtime').innerText(),/unavailable/);
+        await tab('User Profiles').click();assert(await toolbar('Add').isDisabled());
+        await page.evaluate(()=>hsFixture.releaseLoad());
+        await page.waitForFunction(()=>!document.querySelector('[data-action="add"]').disabled);
+        assert.match(await page.locator('.hs-count').innerText(),/1 of 1/);
         await page.goto(fixture.url);await tab('Servers').waitFor();assert.equal(await page.getByRole('tab').count(),11);
         for(const schema of data.schemas){await tab(schema.label).click();assert.equal(await page.locator('.hs-table tbody tr').count(),1,schema.label+' loaded');assert.equal(await tab(schema.label).getAttribute('aria-selected'),'true');}
         await tab('Servers').click();await tab('Servers').press('ArrowRight');assert.equal(await tab('Server Profiles').getAttribute('aria-selected'),'true');await tab('Server Profiles').press('End');assert.equal(await tab('Cookies').getAttribute('aria-selected'),'true');await tab('Cookies').press('Home');assert.equal(await tab('Servers').getAttribute('aria-selected'),'true');
@@ -70,6 +81,6 @@ async function run(){
         await page.goto(broken.url);await tab('Servers').waitFor();assert.match(await page.locator('.hs-notice').textContent(),/Could not load Hotspot settings: Router is unreachable/);assert.equal(await toolbar('Add').isDisabled(),true);await page.evaluate(()=>{hsFixture.snapshotFailure=null;for(const key of Object.keys(hsFixture.state.collections))hsFixture.state.collections[key]=[];});await toolbar('Refresh').click();await page.waitForFunction(()=>document.querySelector('.hs-notice').textContent==='Hotspot information refreshed.');assert.equal(await toolbar('Add').isEnabled(),true);assert.match(await page.locator('.hs-empty').textContent(),/No servers yet/);
         await page.evaluate(()=>hsFixture.state.can_write=false);await toolbar('Refresh').click();await page.waitForFunction(()=>!document.querySelector('.hs-readonly').hidden);assert.equal(await toolbar('Add').isDisabled(),true);
         assert.deepEqual(errors,[],'no uncaught browser errors');console.log('Hotspot UI: all 11 tabs; all 8 configuration CRUD forms; enable/disable; validation; selection/filter; setup; reset; sessions/cookies; stale changes; errors; empty state; load recovery; read-only; live refresh; keyboard; day/night; mobile passed.');console.log('Screenshots: '+artifacts);
-    }finally{await browser.close();await fixture.close();await readonly.close();await broken.close();}
+    }finally{await browser.close();await fixture.close();await readonly.close();await broken.close();await delayed.close();}
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

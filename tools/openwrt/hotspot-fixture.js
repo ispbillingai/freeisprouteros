@@ -33,7 +33,7 @@ function browserHarness(initial, options) {
     window.ui={showModal:(title,children)=>{document.querySelector('dialog')?.remove();const node=E('dialog',{'aria-label':title},[E('h3',{},title),children]);document.body.appendChild(node);node.showModal();node.addEventListener('cancel',e=>e.preventDefault());},hideModal:()=>document.querySelector('dialog')?.remove()};
     window.rpc={declare:definition=>async(...args)=>{
         if(fixture.delay)await new Promise(resolve=>setTimeout(resolve,fixture.delay));
-        if(definition.method==='snapshot'){if(fixture.snapshotFailure)throw new Error(fixture.snapshotFailure);return copy(fixture.state);}
+        if(definition.method==='snapshot'){if(options.deferLoad)await new Promise(resolve=>fixture.releaseLoad=()=>{options.deferLoad=false;resolve();});if(fixture.snapshotFailure)throw new Error(fixture.snapshotFailure);return copy(fixture.state);}
         const [action,encoded]=args,payload=JSON.parse(encoded);fixture.calls.push({action,payload});
         if(fixture.failure){const error=fixture.failure;fixture.failure=null;return {ok:false,error};}
         if(options.readOnly||fixture.state.can_write===false)return {ok:false,error:{code:'permission_denied',message:'Read-only access.'}};

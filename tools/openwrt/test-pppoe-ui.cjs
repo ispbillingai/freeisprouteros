@@ -33,6 +33,7 @@ fs.mkdirSync(out, {recursive: true});
                 const rpc = {declare: spec => async (...args) => {
                     state.calls.push([spec.method, args]);
                     if (state.fail || spec.method === 'save' && state.saveFail || options.loadFail) throw new Error('Router unreachable');
+                    if (spec.method === 'get' && options.deferLoad) await new Promise(resolve => state.releaseLoad = resolve);
                     if (spec.method === 'get') return {config: structuredClone(state.config), revision: state.revision, status: live(), interfaces: [{name: 'br-lan', up: true}]};
                     if (spec.method === 'status') return live();
                     if (spec.method === 'save') {
@@ -57,6 +58,15 @@ fs.mkdirSync(out, {recursive: true});
             await btn('Save to review').click();
         }
         async function apply() { await btn('Save & apply').click(); await page.getByRole('dialog').getByRole('button', {name: 'Save & apply', exact: true}).click(); }
+        await reset({deferLoad: true});
+        assert.equal(await page.getByRole('tab').count(), 5, 'all tabs render before config response');
+        assert(await btn('+ Add server').isDisabled(), 'cannot overwrite unseen settings');
+        assert.match(await page.locator('.pp-table').innerText(), /Waiting for saved/);
+        assert.doesNotMatch(await page.locator('.pp-heading').innerText(), /missing|Connection lost/);
+        await tab('Profiles'); assert(await btn('+ Add profile').isDisabled());
+        await page.evaluate(() => fixture.releaseLoad());
+        await page.waitForFunction(() => !Array.from(document.querySelectorAll('button')).find(b => b.textContent === '+ Add profile').disabled);
+        assert.match(await page.locator('.pp-footer').innerText(), /Settings saved/);
         await reset();
         assert.equal(await page.getByRole('tab').count(), 5);
         await addPool();
@@ -93,7 +103,7 @@ fs.mkdirSync(out, {recursive: true});
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         await page.screenshot({path: path.join(out, 'pools-mobile.png'), fullPage: true});
         assert.deepEqual(errors, []);
-        fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({passed: true, checks: ['create pool/profile/server/secret', 'apply payload', 'password blank on edit', 'reference protection', 'search', 'status failure', 'validation error', 'uncertain save protection', 'readonly', 'load failure', 'mobile width', 'no browser errors']}, null, 2));
+        fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({passed: true, checks: ['controls render before deferred config; writes disabled; no false missing/empty state', 'create pool/profile/server/secret', 'apply payload', 'password blank on edit', 'reference protection', 'search', 'status failure', 'validation error', 'uncertain save protection', 'readonly', 'load failure', 'mobile width', 'no browser errors']}, null, 2));
         console.log('PPPoE browser checks passed.');
     } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
