@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "branch": "codex/release-review",
   "build": {
     "configuration": "Release x64 net48",
@@ -36,12 +36,13 @@
     }
   },
   "limitations": [
-    "Management HTML and live data still require the router; this is not a fully bundled data-only client.",
+    "Only Device Hub and the read-only Interfaces workspace are bundled locally. Configuration pages still load router HTML and live data.",
+    "Traffic updates poll after each response, about once a second on a responsive router; they are not a packet capture.",
     "No native executable auto-updater is included.",
     "Old pinned shortcuts may retain an old icon until repinned.",
     "Physical WiFi cannot be tested on the VPS."
   ],
-  "executable_sha256": "0cc1d93b56353181db7513e84fc8e725ab2fa45b6735b65d45c21a4800653c95",
+  "executable_sha256": "c9a524e3b87cb897e4844566f6874b4beba068fc435dc460b801f66d40a8754d",
   "merged_sources": [
     "16f9c080e9321a64efaf9834bdb8955849e95d0d",
     "fd299f0"
@@ -89,7 +90,7 @@
       "cancelled_completion_ignored": true
     }
   },
-  "base_release": "94d63e4",
+  "base_release": "4e66ab2",
   "animation_frame_regression": {
     "old_025_failed": true,
     "loading_overlay_keeps_browser_rendering": true,
@@ -99,8 +100,11 @@
     "passed": true,
     "hubLogin": true,
     "savedPasswordReconnect": true,
-    "quickSetRendered": true,
-    "loadingDismissed": true
+    "localInterfacesRendered": true,
+    "realCounters": true,
+    "trafficRates": true,
+    "offlineLayoutMilliseconds": 141,
+    "offlineRemainsUsable": true
   },
   "local_password_storage": {
     "method": "Windows DPAPI CurrentUser",
@@ -111,10 +115,153 @@
     "live_saved_reconnect_verified": true
   },
   "performance_change": {
-    "cache_cleared_only_for_router_or_revision_change": true,
-    "internal_navigation_uses_validated_cache": true,
-    "baseline_two_logins_seconds": 26.0544401,
-    "updated_two_logins_seconds": 25.8450791,
-    "note": "Single-run app startup plus two connections, not a general speed guarantee."
+    "interfaces_layout_bundled": true,
+    "live_data_independent_of_layout": true,
+    "offline_layout_milliseconds": 141,
+    "measurement_scope": "One warm navigation in the actual WebView2 app, with no data client, measured through visible offline state. Excludes app startup and authentication; not a guarantee for other PCs or router settings pages."
+  },
+  "local_interfaces_browser_fixture": {
+    "passed": true,
+    "checks": {
+      "immediate_local_layout_and_original_logo": true,
+      "empty_router_stays_offline_without_polling": true,
+      "no_overlapping_requests": true,
+      "unknown_not_zero_or_down": true,
+      "measured_rates_and_svg_chart": true,
+      "day_night": true,
+      "search_and_selection": true,
+      "stale_values_explicitly_disconnected": true,
+      "hidden_page_stops_polling": true,
+      "context_clears_values_and_rejects_old_generation": true,
+      "router_names_render_as_text": true,
+      "native_navigation_contract": true,
+      "no_browser_errors": true
+    }
+  },
+  "native_interface_data_transport": {
+    "passed": true,
+    "scope": "compiled RouterDataClient; loopback fixture only",
+    "checks": {
+      "success_fixed_request": true,
+      "success": true,
+      "missing_statistics_fixed_request": true,
+      "missing_statistics": true,
+      "denied_session_fixed_request": true,
+      "denied_session": true,
+      "redirect_fixed_request": true,
+      "redirect": true,
+      "invalid_json_fixed_request": true,
+      "invalid_json": true,
+      "oversized_fixed_request": true,
+      "oversized": true,
+      "wrong_id_fixed_request": true,
+      "wrong_id": true,
+      "wrong_version_fixed_request": true,
+      "wrong_version": true,
+      "error_with_result_fixed_request": true,
+      "error_with_result": true,
+      "too_many_devices_fixed_request": true,
+      "too_many_devices": true,
+      "slow_headers_fixed_request": true,
+      "slow_headers": true,
+      "slow_body_fixed_request": true,
+      "slow_body": true,
+      "cancel_body_fixed_request": true,
+      "cancel_body": true
+    },
+    "scenarios": {
+      "success": {
+        "passed": true,
+        "elapsed": 0.436,
+        "nativeSucceeded": true,
+        "error": "",
+        "cancelReturned": false
+      },
+      "missing_statistics": {
+        "passed": true,
+        "elapsed": 0.448,
+        "nativeSucceeded": true,
+        "error": "",
+        "cancelReturned": false
+      },
+      "denied_session": {
+        "passed": true,
+        "elapsed": 0.472,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: Router session expired or access was denied. Sign in again.",
+        "cancelReturned": false
+      },
+      "redirect": {
+        "passed": true,
+        "elapsed": 0.456,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: Router data is unavailable. Check the connection or sign in again.",
+        "cancelReturned": false
+      },
+      "invalid_json": {
+        "passed": true,
+        "elapsed": 0.459,
+        "nativeSucceeded": false,
+        "error": "ArgumentException: Invalid object passed in, ':' or '}' expected. (6): {not JSON",
+        "cancelReturned": false
+      },
+      "oversized": {
+        "passed": true,
+        "elapsed": 0.497,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: Router response exceeded the supported size.",
+        "cancelReturned": false
+      },
+      "wrong_id": {
+        "passed": true,
+        "elapsed": 0.463,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: The router returned an unexpected response.",
+        "cancelReturned": false
+      },
+      "wrong_version": {
+        "passed": true,
+        "elapsed": 0.525,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: The router returned an unexpected response.",
+        "cancelReturned": false
+      },
+      "error_with_result": {
+        "passed": true,
+        "elapsed": 0.489,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: Router session expired or access was denied. Sign in again.",
+        "cancelReturned": false
+      },
+      "too_many_devices": {
+        "passed": true,
+        "elapsed": 0.521,
+        "nativeSucceeded": false,
+        "error": "InvalidOperationException: The router returned invalid interface data.",
+        "cancelReturned": false
+      },
+      "slow_headers": {
+        "passed": true,
+        "elapsed": 5.095,
+        "nativeSucceeded": false,
+        "error": "TaskCanceledException: A task was canceled.",
+        "cancelReturned": false
+      },
+      "slow_body": {
+        "passed": true,
+        "elapsed": 5.588,
+        "nativeSucceeded": false,
+        "error": "TimeoutException: The router is taking too long to respond.",
+        "cancelReturned": false
+      },
+      "cancel_body": {
+        "passed": true,
+        "elapsed": 1.14,
+        "nativeSucceeded": false,
+        "error": "TimeoutException: The router is taking too long to respond.",
+        "cancelReturned": true
+      }
+    },
+    "secretsLogged": false
   }
 }

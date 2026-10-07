@@ -1,12 +1,24 @@
 # FreeISP Desk for Windows — Device Hub
 
-Version 0.2.8 keeps a branded local window around the management workspace,
-with the original FreeISP taskbar/window icon, an immediate loading surface,
-retry and Device Hub controls. The stable Windows application identity is
-`FreeISP.Desk`. Day/Night themes, login, saved routers and gateway discovery
-remain in the bundled Device Hub. Router Tools opens the connected router’s
-[Tools workspace](../openwrt/TOOLS.md). The shared connection helper rejects
-empty sessions and validates login without following redirects.
+Version 0.3.0 opens a bundled Interfaces workspace after login. Its layout,
+search, Day/Night themes, table and traffic chart are local, so rendering does
+not wait for a router page or release-manifest download. The native app reads
+interface counters from the authenticated router and updates the workspace
+about once a second, with one request in flight. Rates require two readings.
+Missing values stay unknown and disconnected readings are marked as stale.
+
+The Interfaces toolbar button also opens the layout while disconnected.
+Quick Set, PPPoE, Hotspot, Bridge/VLAN, Firewall, Queues and Tools remain
+available through Router Settings shortcuts. Those configuration pages are
+still served by the router; this release does not make every page local.
+
+The data bridge only permits the fixed read-only network.device/status call.
+The session remains in native memory, credentials never enter the Interfaces
+page, redirects are rejected and HTTPS certificate validation stays enabled.
+Responses have a five-second deadline and 2 MiB limit. Leaving the workspace,
+refreshing or disconnecting cancels pending reads; old-router results cannot
+populate a new connection. Existing encrypted saved passwords and the original
+FreeISP window/taskbar icon are preserved.
 
 Version 0.2.8 reuses the browser cache while the router and interface revision
 are unchanged. Static requests during menu navigation wait for the revision
@@ -38,7 +50,7 @@ later navigations use the repaired cache normally. It never automatically
 resubmits a settings form. Old navigation callbacks cannot replace a newer
 page or the Device Hub, and closing the window cancels readiness work.
 
-The management pages still use LuCI's router HTML and live API calls. This is
+Configuration pages still use LuCI's router HTML and live API calls. This is
 not a complete local, data-only management client. Static JavaScript, CSS,
 images and fonts can now be reused locally after their first network load.
 Before connection/refresh, and during internal navigation, Desk checks the
@@ -70,8 +82,8 @@ For the VPS lab, keep the SSH tunnel running and use http://127.0.0.1:8874.
 Enter the router credentials, not the VPS SSH credentials. For hardware, enter
 its HTTPS address. No passwords are embedded in the application.
 
-Remember this router saves its name, address and username on this Windows
-account. Passwords are not saved. Browser sessions remain until logout,
+Remember this router and password saves its name, address and username, plus
+a password encrypted for this Windows account. Browser sessions remain until logout,
 disconnect, expiry or clearing the app profile. Device Hub returns to the local
 connection screen; Disconnect clears browser data. Use the router's Logout to
 terminate its server session.
@@ -85,7 +97,7 @@ untrusted hints; HTTPS certificate checks remain enabled when connecting.
 ## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.5
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.3.0
 
 Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
 Hub and are also usable as a static design preview; login and discovery require
@@ -106,7 +118,7 @@ the executable; no router credentials or live connection are used by this check.
 The test also verifies the explicit Windows identity, local shell and cache
 origin/type/size/revision guards. Run the real WebView cache fixture on Windows:
 
-    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.2.5/FreeISP Desk.exe" --output artifacts/tests/cache-browser
+    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe" --output artifacts/tests/cache-browser
 
 This serves only a loopback fixture and runs a hidden, isolated application
 profile. It verifies first network load, local asset reuse, revision refresh,
@@ -116,7 +128,7 @@ script, then repairs that script without changing the revision. It verifies
 timeout recovery, a network retry, retained cookies, subsequent cache reuse,
 and returning to the local hub during stuck rendering and document loading:
 
-    python tools/desktop/test_readiness.py "artifacts/releases/freeisp-desk-v0.2.5/FreeISP Desk.exe" --output artifacts/tests/readiness-browser
+    python tools/desktop/test_readiness.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe" --output artifacts/tests/readiness-browser
 
 The readiness test uses a shorter deadline in an isolated loopback-only
 test profile; normal operation uses 30 seconds. These fixtures do not test
@@ -130,3 +142,17 @@ The connection self-test also uses disposable loopback HTTP fixtures. Run
 persistence across process launches. With the disposable Tools VM on loopback
 port 18940, `--self-test --tools-router-test` checks real router login, the native
 Router Tools button and ping. These tests do not use a production router.
+
+Local Interfaces checks:
+
+    node tools/desktop/test_local_interfaces.cjs
+    python tools/desktop/test_router_data.py "artifacts/releases/freeisp-desk-v0.3.0/FreeISP Desk.exe"
+
+The browser fixture covers immediate layout, themes, unknown/stale data, rates,
+chart rendering, non-overlapping polling and connection changes. The native
+transport fixture covers the exact RPC contract, session failures, redirects,
+invalid/oversized responses, timeouts and cancellation. With an authorized
+router forwarded to loopback, `--live-router-test --test-router=http://127.0.0.1:8874`
+uses the temporary `FREEISP_TEST_PASSWORD` environment variable to verify login,
+real counters/rates, offline layout and saved-password reconnect. Test profiles
+are isolated; the test does not change router configuration.

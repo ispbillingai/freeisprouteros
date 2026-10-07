@@ -6,7 +6,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>FreeISP Desk</AssemblyName>
     <RootNamespace>FreeISP.Desk</RootNamespace>
-    <Version>0.2.8</Version>
+    <Version>0.3.0</Version>
     <Description>FreeISP Windows router manager</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>freeisp.ico</ApplicationIcon>

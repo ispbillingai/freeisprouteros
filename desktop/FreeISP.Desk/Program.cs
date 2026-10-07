@@ -52,7 +52,7 @@ namespace FreeISP.Desk {
   readonly Panel loading=new Panel{Dock=DockStyle.Fill,BackColor=Color.FromArgb(243,248,251)};
   readonly Label progressTitle=new Label{AutoSize=false,TextAlign=ContentAlignment.MiddleCenter,Font=new Font("Segoe UI",21,FontStyle.Bold),ForeColor=Color.FromArgb(11,36,53),Text="Opening your workspace"};
   readonly Label progressDetail=new Label{AutoSize=false,TextAlign=ContentAlignment.MiddleCenter,Font=new Font("Segoe UI",11),ForeColor=Color.FromArgb(82,108,128),Text="FreeISP Desk is ready on this computer."};
-  readonly Label connectionLabel=new Label{AutoSize=true,ForeColor=Color.FromArgb(164,220,223),Top=19,Left=640,Text="Local workspace"};
+  readonly Label connectionLabel=new Label{AutoSize=true,ForeColor=Color.FromArgb(164,220,223),Top=19,Left=748,Text="Local workspace"};
   readonly Button retry=new Button{Text="Try again",Width=110,Height=32,Visible=false};
   readonly Button returnHub=new Button{Text="Device Hub",Width=110,Height=32,Visible=false};
   RouterAssetCache assetCache; Task assetPreparation; string browserCacheKey; string approvedNavigation; int navigationGeneration; bool preparingNavigation; bool navigating;
@@ -68,15 +68,16 @@ namespace FreeISP.Desk {
    var brand=new PictureBox{Left=12,Top=7,Width=38,Height=38,SizeMode=PictureBoxSizeMode.Zoom,Image=Image.FromFile(Path.Combine(Program.Assets,"Hub","freeisp-logo.png"))};
    var title=new Label{Text="FreeISP Desk",ForeColor=Color.White,Font=new Font("Segoe UI",11,FontStyle.Bold),AutoSize=true,Left=59,Top=16};
    var home=ShellButton("Device Hub",185,100);home.Click+=(s,e)=>{if(browser.CoreWebView2!=null)ShowHub();};
-   var reload=ShellButton("Refresh",295,90);reload.Click+=async(s,e)=>{if(browser.CoreWebView2!=null){if(router!=null&&!IsHub(browser.Source))await NavigateRouter(browser.Source);else ShowHub();}};
-   var logout=ShellButton("Disconnect",395,110);logout.Click+=async(s,e)=>{if(browser.CoreWebView2==null)return;navigationGeneration++;router=null;assetCache=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
+   var reload=ShellButton("Refresh",295,90);reload.Click+=async(s,e)=>{if(browser.CoreWebView2!=null){if(IsInterfaces(browser.Source)){CancelInterfaceRequests();await SendInterfaceContext();}else if(router!=null&&!IsHub(browser.Source))await NavigateRouter(browser.Source);else ShowHub();}};
+   var logout=ShellButton("Disconnect",395,110);logout.Click+=async(s,e)=>{if(browser.CoreWebView2==null)return;CancelInterfaceRequests();routerData?.Dispose();routerData=null;navigationGeneration++;router=null;assetCache=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
    var tools=ShellButton("Router Tools",515,110);tools.Click+=async(s,e)=>{if(router!=null&&browser.CoreWebView2!=null)await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/network/freeisp_tools"));};
-   controls.Controls.AddRange(new Control[]{brand,title,home,reload,logout,tools,connectionLabel});
+   var interfaces=ShellButton("Interfaces",635,100);interfaces.Click+=(s,e)=>{if(browser.CoreWebView2!=null)ShowInterfaces();};
+   controls.Controls.AddRange(new Control[]{brand,title,home,reload,logout,tools,interfaces,connectionLabel});
    var largeLogo=new PictureBox{Width=130,Height=130,SizeMode=PictureBoxSizeMode.Zoom,Image=brand.Image};
    loading.Controls.AddRange(new Control[]{largeLogo,progressTitle,progressDetail,retry,returnHub});
    loading.Resize+=(s,e)=>{int middle=loading.ClientSize.Height/2;largeLogo.Left=(loading.Width-130)/2;largeLogo.Top=middle-160;progressTitle.SetBounds(20,middle-18,loading.Width-40,55);progressDetail.SetBounds(30,middle+45,loading.Width-60,60);retry.Left=loading.Width/2-115;retry.Top=middle+125;returnHub.Left=loading.Width/2+5;returnHub.Top=middle+125;};
    retry.Click+=async(s,e)=>{if(router!=null)await NavigateRouter(retryTarget??new Uri(router,"/cgi-bin/luci/admin/freeisp"),true);else ShowHub();};returnHub.Click+=(s,e)=>ShowHub();
-   FormClosing+=(s,e)=>{closing=true;navigationGeneration++;};
+   FormClosing+=(s,e)=>{closing=true;CancelInterfaceRequests();routerData?.Dispose();navigationGeneration++;};
    Controls.Add(browser);Controls.Add(loading);Controls.Add(controls);loading.BringToFront();controls.BringToFront();
    Shown+=async(s,e)=>{try{
     Directory.CreateDirectory(data);
@@ -183,7 +184,7 @@ namespace FreeISP.Desk {
     assetCache=next;approvedNavigation=target.AbsoluteUri;preparingNavigation=false;browser.CoreWebView2.Navigate(target.AbsoluteUri);
    }catch(Exception ex){if(!closing&&generation==navigationGeneration){preparingNavigation=false;ShowProgress("Connection unavailable","Your local workspace is ready. "+ex.Message,true);}}
   }
-  void ShowHub(){if(closing)return;navigationGeneration++;preparingNavigation=false;navigating=false;approvedNavigation=null;assetCache=null;bypassPageCache=false;busy=false;browser.CoreWebView2.Stop();ShowProgress("Your local workspace","Opening saved routers and connection tools…");browser.CoreWebView2.Navigate(Hub);}
+  void ShowHub(){if(closing)return;CancelInterfaceRequests();navigationGeneration++;preparingNavigation=false;navigating=false;approvedNavigation=null;assetCache=null;bypassPageCache=false;busy=false;browser.CoreWebView2.Stop();ShowProgress("Your local workspace","Opening saved routers and connection tools…");browser.CoreWebView2.Navigate(Hub);}
   Task Send(object message){if(IsHub(browser.Source))browser.CoreWebView2.PostWebMessageAsJson(json.Serialize(message));return Task.CompletedTask;}
   object[] PublicRouters(){return ReadRouters().Select(r=>(object)new{name=r.name,address=r.address,username=r.username,source=r.source,hasPassword=!string.IsNullOrEmpty(r.protectedPassword)}).ToArray();}
   List<RouterEntry> ReadRouters(){try{return json.Deserialize<List<RouterEntry>>(File.ReadAllText(Path.Combine(data,"routers.json")))??new List<RouterEntry>();}catch{return new List<RouterEntry>();}}
@@ -193,6 +194,8 @@ namespace FreeISP.Desk {
    try{
     var m=json.Deserialize<Dictionary<string,object>>(args.WebMessageAsJson);
     string action=Convert.ToString(m["action"]);
+    if(IsInterfaces(origin)&&IsInterfaces(browser.Source)){await HandleInterfaceMessage(m);return;}
+    if(!IsDeviceHub(origin)||!IsDeviceHub(browser.Source))return;
     if(action=="discover"){await Discover();return;}
     if(action=="remove"){var list=ReadRouters();list.RemoveAll(r=>r.address==Convert.ToString(m["address"]));File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));await Send(new{type="routers",routers=PublicRouters()});return;}
     if(action!="connect"||busy)return;
@@ -214,7 +217,7 @@ namespace FreeISP.Desk {
      list.Add(new RouterEntry{name=string.IsNullOrWhiteSpace(Convert.ToString(m["name"]))?address.Host:Convert.ToString(m["name"]),address=address.AbsoluteUri,username=username,source="Saved",protectedPassword=LocalPassword.Seal(password,address.AbsoluteUri,username)});
      File.WriteAllText(Path.Combine(data,"routers.json"),json.Serialize(list));
     }
-    password=null;router=address;await NavigateRouter(new Uri(router,"/cgi-bin/luci/admin/freeisp"));
+    password=null;routerData?.Dispose();routerData=new RouterDataClient(address,cookie);router=address;ShowInterfaces();
    }catch(Exception ex){await Send(new{type="status",message=ex is TaskCanceledException?"Connection timed out. Check the router or SSH tunnel.":ex is HttpRequestException?"Connection failed. Check the address, tunnel and HTTPS certificate.":ex.Message,busy=false});}finally{busy=false;}
   }
   public static bool Private(IPAddress ip){var b=ip.GetAddressBytes();return b.Length==4&&(b[0]==10||(b[0]==192&&b[1]==168)||(b[0]==172&&b[1]>=16&&b[1]<=31));}

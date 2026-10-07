@@ -20,6 +20,7 @@ namespace FreeISP.Desk {
   async void NavigationStarting(object sender,CoreWebView2NavigationStartingEventArgs args){
    Uri target;
    if(closing||!Uri.TryCreate(args.Uri,UriKind.Absolute,out target)||(!IsHub(target)&&!SameRouter(target))){args.Cancel=true;return;}
+   if(SameRouter(target)&&target.AbsolutePath=="/cgi-bin/luci/admin/network/freeisp_interfaces"&&approvedNavigation!=target.AbsoluteUri){args.Cancel=true;ShowInterfaces();return;}
    bool redirect=args.IsRedirected&&args.NavigationId==activeNavigationId;
    bool approved=approvedNavigation==target.AbsoluteUri;
    if(approved)approvedNavigation=null;
@@ -54,6 +55,7 @@ namespace FreeISP.Desk {
     navigationCompleted=true;
     if(!IsHub(browser.Source)){if(cacheTest){navigating=false;await CheckBrowserCache();}return;}
     RevealPage();
+    if(IsInterfaces(browser.Source)){await SendInterfaceContext();return;}
     if(selfTest&&!readinessTest&&!liveRouterTest){await Task.Delay(400);if(CurrentNavigation(generation,id))await RunSelfTest(args.IsSuccess);return;}
     await Send(new{type="routers",routers=PublicRouters()});
    }catch(Exception ex){if(CurrentNavigation(generation,id)){navigating=false;ShowProgress("Interface unavailable","The page could not finish opening. "+ex.Message,true);}}
