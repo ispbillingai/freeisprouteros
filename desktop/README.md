@@ -1,8 +1,27 @@
 # FreeISP Desk for Windows — Device Hub
 
-Version 0.2.1 replaces the blank opening screen with the FreeISP Device Hub,
-including Day/Night themes, direct router login, saved router cards and local
-IPv4 gateway discovery. The router still serves the management pages.
+Version 0.2.3 keeps a branded local window around the management workspace,
+with the original FreeISP taskbar/window icon, an immediate loading surface,
+retry and Device Hub controls. The stable Windows application identity is
+`FreeISP.Desk`. Day/Night themes, login, saved routers and gateway discovery
+remain in the bundled Device Hub.
+
+The management pages still use LuCI's router HTML and live API calls. This is
+not a complete local, data-only management client. Static JavaScript, CSS,
+images and fonts can now be reused locally after their first network load.
+Before connection/refresh, and during internal navigation, Desk checks the
+router's `/luci-static/freeisp/release.json`. Its `revision` must be a 40–64
+character hexadecimal content hash. The release process must change that hash
+whenever presentation assets or their backend contract changes.
+
+Caches are separate for each exact scheme, host and port, and each revision.
+Changed revisions invalidate old assets automatically. Missing, invalid or
+unreachable manifests bypass the custom cache. HTML, authentication, RPC and
+configuration are never cached by this layer; router actions require a live
+connection. Native page POSTs retain their method and body. HTTPS certificate
+validation remains enabled. Assets are limited to 2 MiB each, 128 objects and
+16 MiB per router; only the current revision is retained. Disconnect clears
+WebView session data, while public presentation assets can remain on disk.
 
 ## Run
 
@@ -34,7 +53,7 @@ untrusted hints; HTTPS certificate checks remain enabled when connecting.
 ## Build
 
     dotnet restore desktop/FreeISP.Desk/FreeISP.Desk.csproj --source https://api.nuget.org/v3/index.json
-    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.1
+    dotnet build desktop/FreeISP.Desk/FreeISP.Desk.csproj -c Release --no-restore -o artifacts/releases/freeisp-desk-v0.2.3
 
 Local data: %LOCALAPPDATA%\FreeISP\Desk. The connection-screen files are under
 Hub and are also usable as a static design preview; login and discovery require
@@ -42,10 +61,24 @@ the Windows host. Messages from router pages cannot invoke host actions.
 Credentials are posted only to the chosen router origin without following
 redirects; the returned session cookie is installed in the embedded browser.
 
-No automatic application updater is included. Router-served interface updates
-appear after Reload; native client changes require replacing the app folder.
+No automatic executable updater is included. Compatible router interface
+updates refresh automatically when navigating or using Refresh; native client
+changes require downloading the new single executable. A fully bundled local
+management client needs a separately versioned API contract and implementations
+of all management views. The current cache does not claim that architecture.
 
 The original logo is copied unchanged from the user-provided F:/Logos/logo.png.
 Run the built executable with --self-test to verify embedded extraction and hub
 rendering with external WebView requests blocked. Test files are written beside
 the executable; no router credentials or live connection are used by this check.
+The test also verifies the explicit Windows identity, local shell and cache
+origin/type/size/revision guards. Run the real WebView cache fixture on Windows:
+
+    python tools/desktop/test_cache.py "artifacts/releases/freeisp-desk-v0.2.3/FreeISP Desk.exe" --output artifacts/tests/cache-browser
+
+This serves only a loopback fixture and runs a hidden, isolated application
+profile. It verifies first network load, local asset reuse, revision refresh,
+invalid-manifest bypass, uncached API reads and intact router form POSTs.
+It is not evidence of compatibility with every router page or of offline
+router operation. The Windows icon may need an old pinned shortcut to be
+unpinned and the new executable pinned again if Explorer retained its old icon.

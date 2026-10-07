@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-07",
+  "version": "0.2.3",
+  "branch": "codex/desk-release",
+  "build": {"configuration": "Release x64 net48", "warnings": 0, "errors": 0},
+  "standalone_offline_test": {
+    "passed": true,
+    "hub": true,
+    "webview_bridge": true,
+    "original_logo": true,
+    "original_icon_loaded": true,
+    "explicit_windows_identity": "FreeISP.Desk",
+    "local_shell": true,
+    "external_web_requests_blocked": true,
+    "cache_origin_revision_type_size_guards": true
+  },
+  "actual_webview_loopback_fixture": {
+    "passed": true,
+    "first_network_asset_load": true,
+    "same_revision_local_asset_reuse": true,
+    "changed_revision_fetches_new_asset": true,
+    "invalid_manifest_bypasses_cache": true,
+    "api_calls_remain_live": true,
+    "router_form_post_method_and_body_preserved": true,
+    "page_loads": 5,
+    "api_reads": 5,
+    "network_asset_reads": 4
+  },
+  "limitations": [
+    "LuCI management HTML and bootstrap still come from the router; this is not a fully bundled data-only management client.",
+    "Real deployed-router integration and every management feature were not tested in this isolated desktop task.",
+    "No native executable auto-updater is included.",
+    "Windows may retain the icon of an old pinned shortcut until it is pinned again from the new executable."
+  ],
+  "executable_sha256": "0e8b5966c4bc7eb6322e704ac4aa4b47fd3b5f018c869a7526bcac7e600228aa"
+}
