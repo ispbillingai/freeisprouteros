@@ -78,6 +78,9 @@ class Router:
             capture_output=True, timeout=65)
         return {'code': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}
 
+    def interface(self, name):
+        return json.loads(self.execute('/bin/ubus', ['call', 'network.interface.' + name, 'status']))
+
 
 class Witness(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -105,9 +108,9 @@ try:
     check('incorrect_password_rejected', isinstance(rejected, int) and rejected != 0)
     board = router.rpc('system', 'board')
     check('official_release_and_identity', board['release']['version'] == '25.12.5' and board['hostname'] == 'FreeISP')
-    wan = router.rpc('network.interface.wan', 'status')
+    wan = router.interface('wan')
     check('wan_dhcp_up', wan['up'] and wan['ipv4-address'][0]['address'] == '10.0.2.15')
-    check('lan_bridge_up', router.rpc('network.interface.lan', 'status')['device'] == 'br-lan')
+    check('lan_bridge_up', router.interface('lan')['device'] == 'br-lan')
     packages = router.execute('/bin/sh', ['-c', 'apk info'])
     check('management_packages_installed', all(p in packages.splitlines() for p in ['luci-app-sqm', 'luci-app-nlbwmon', 'luci-app-commands', 'luci-proto-wireguard']))
     check('radius_not_installed', not any('radius' in p.lower() for p in packages.splitlines()))
@@ -160,7 +163,7 @@ try:
         try:
             customer = Router(8892, 2225)
             customer.ready()
-            cwan = customer.rpc('network.interface.wan', 'status')
+            cwan = customer.interface('wan')
             addresses = [v['address'] for v in cwan.get('ipv4-address', [])]
             check('separate_customer_receives_dhcp', any(a.startswith('10.77.0.') for a in addresses))
             dns = customer.execute('/bin/sh', ['-c', 'nslookup freeisp.lan 10.77.0.1'])
