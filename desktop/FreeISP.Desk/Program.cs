@@ -47,6 +47,7 @@ namespace FreeISP.Desk {
   readonly bool selfTest=Environment.GetCommandLineArgs().Contains("--self-test");
   public DeskWindow(){
    Text="FreeISP Desk";Size=new Size(1320,900);MinimumSize=new Size(960,650);StartPosition=FormStartPosition.CenterScreen;
+   Icon=System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
    if(selfTest){ShowInTaskbar=false;Opacity=0;var timer=new Timer{Interval=45000};timer.Tick+=(s,e)=>{File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),"{\"passed\":false,\"error\":\"timeout\"}");Environment.Exit(1);};timer.Start();}
    var home=new Button{Text="← Device Hub",Left=12,Top=6,Width=120,Height=28};home.Click+=(s,e)=>ShowHub();
    var reload=new Button{Text="Reload",Left=140,Top=6,Width=80,Height=28};reload.Click+=(s,e)=>browser.Reload();
