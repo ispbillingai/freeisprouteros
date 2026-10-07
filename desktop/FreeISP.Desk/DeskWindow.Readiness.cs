@@ -45,7 +45,7 @@ namespace FreeISP.Desk {
 
   void ShowRouterNavigationProgress(string detail,bool forceOverlay=false){
    connectionLabel.Text="Reading router settings…";
-   if(routerPagePresented&&!loading.Visible&&!forceOverlay){
+   if((routerPagePresented||IsInterfaces(browser.Source))&&!loading.Visible&&!forceOverlay){
     retry.Visible=returnHub.Visible=false;browser.Visible=true;controls.BringToFront();
    }else ShowProgress("Your network workspace",detail);
   }

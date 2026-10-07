@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "branch": "codex/release-review",
   "build": {
     "configuration": "Release x64 net48",
@@ -22,6 +22,8 @@
     "passed": true,
     "firstNetworkLoad": true,
     "sameRevisionLocalAsset": true,
+    "sidebarManifestReused": true,
+    "explicitRefreshRevalidates": true,
     "revisionRefresh": true,
     "missingManifestBypass": true,
     "apiNeverCached": true,
@@ -32,17 +34,18 @@
       "assets": 4,
       "api": 5,
       "html": 5,
+      "manifests": 4,
       "postIntact": true
     }
   },
   "limitations": [
-    "Only Device Hub and the read-only Interfaces workspace are bundled locally. Configuration pages still load router HTML and live data.",
-    "Traffic updates poll after each response, about once a second on a responsive router; they are not a packet capture.",
-    "No native executable auto-updater is included.",
-    "Old pinned shortcuts may retain an old icon until repinned.",
+    "Most configuration values still require live RPC responses. The software-emulated VPS can take several seconds, including about 10 seconds for all Overview widgets in the measured run.",
+    "Initial connection still loads the router runtime once. Later sidebar navigation reuses it; unsupported legacy pages fall back to ordinary navigation.",
+    "Only Device Hub and Interfaces are fully bundled in the Windows executable. The remaining router workspaces need a connection.",
+    "No executable auto-updater; install 0.3.1 for the native full-sidebar change.",
     "Physical WiFi cannot be tested on the VPS."
   ],
-  "executable_sha256": "c9a524e3b87cb897e4844566f6874b4beba068fc435dc460b801f66d40a8754d",
+  "executable_sha256": "c4fda05047f112252903263514a53d03b3dfde172c099d9e8a5487b40b43c33a",
   "merged_sources": [
     "16f9c080e9321a64efaf9834bdb8955849e95d0d",
     "fd299f0"
@@ -85,12 +88,17 @@
       "same_revision_cache_bypassed_once": true,
       "login_cookie_preserved": true,
       "repaired_asset_reused": true,
+      "sidebar_shell_stays_visible": true,
+      "pending_settings_not_reported_ready": true,
+      "sidebar_reuses_validated_manifest": true,
+      "explicit_refresh_revalidates_manifest": true,
+      "expired_manifest_revalidated": true,
       "superseded_watchdog_ignored": true,
       "stalled_navigation_timeout": true,
       "cancelled_completion_ignored": true
     }
   },
-  "base_release": "4e66ab2",
+  "base_release": "a83edc4",
   "animation_frame_regression": {
     "old_025_failed": true,
     "loading_overlay_keeps_browser_rendering": true,
@@ -103,8 +111,11 @@
     "localInterfacesRendered": true,
     "realCounters": true,
     "trafficRates": true,
-    "offlineLayoutMilliseconds": 141,
-    "offlineRemainsUsable": true
+    "offlineLayoutMilliseconds": 124,
+    "offlineRemainsUsable": true,
+    "fullSidebarPreserved": true,
+    "sharedMenuNavigation": true,
+    "pppoeRendered": true
   },
   "local_password_storage": {
     "method": "Windows DPAPI CurrentUser",
@@ -115,15 +126,27 @@
     "live_saved_reconnect_verified": true
   },
   "performance_change": {
-    "interfaces_layout_bundled": true,
-    "live_data_independent_of_layout": true,
-    "offline_layout_milliseconds": 141,
-    "measurement_scope": "One warm navigation in the actual WebView2 app, with no data client, measured through visible offline state. Excludes app startup and authentication; not a guarantee for other PCs or router settings pages."
+    "full_sidebar_preserved": true,
+    "single_router_document_for_sidebar_navigation": true,
+    "menu_shell_milliseconds": [
+      94,
+      43,
+      63,
+      42,
+      33,
+      32,
+      47
+    ],
+    "pppoe_hotspot_controls_render_before_data": true,
+    "settings_and_permissions_cached": false,
+    "public_release_validation_ttl_seconds": 30,
+    "measurement_scope": "Single live-router browser run with local candidate navigation asset overrides, followed by deployment verification and actual Windows app login/navigation test. Menu response excludes fresh data arrival. Not a universal speed guarantee."
   },
   "local_interfaces_browser_fixture": {
     "passed": true,
     "checks": {
       "immediate_local_layout_and_original_logo": true,
+      "same_router_menu_order_icons_and_density": true,
       "empty_router_stays_offline_without_polling": true,
       "no_overlapping_requests": true,
       "unknown_not_zero_or_down": true,
@@ -263,5 +286,117 @@
       }
     },
     "secretsLogged": false
+  },
+  "shared_menu_navigation_fixture": {
+    "passed": true,
+    "checks": {
+      "release_check_at_startup_omits_credentials": true,
+      "dirty_leave_cancel_preserves_form": true,
+      "old_poll_and_uci_listener_removed": true,
+      "script_callbacks_only_run_for_current_view": true,
+      "revisited_view_loads_fresh_without_saving": true,
+      "deferred_script_load_and_error_detached_on_leave": true,
+      "stale_completion_cannot_replace_latest_view": true,
+      "dirty_back_cancel_restores_current_url_and_form": true,
+      "navigation_never_writes_router_settings": true,
+      "cancelled_async_render_cannot_install_script_callbacks": true,
+      "cancelled_async_render_cannot_register_new_view_resources": true,
+      "reused_poll_callback_gets_new_owner": true,
+      "release_checks_obey_30_second_ttl": true,
+      "overview_template_uses_native_status_view_without_reload": true,
+      "invalid_release_manifest_ignored_safely": true,
+      "changed_revision_reloads_before_old_runtime_loads_target": true,
+      "release_change_survives_cancelled_navigation": true,
+      "expired_session_falls_back_to_login": true,
+      "malformed_permission_environment_falls_back": true,
+      "no_browser_errors": true,
+      "no_http_mutations": true
+    },
+    "issues": []
+  },
+  "scoped_router_deployment": {
+    "deployed": true,
+    "commit": "32ca01904916c598377c063226a56c403c6fe970",
+    "manifest_revision": "558672afc0ae73afddb1422c4022bea11f0fb52b98f328bbcbbda589c476d434",
+    "verified_files": [
+      "usr/lib/freeisp/hotspot_rpc.py",
+      "usr/lib/freeisp/hotspot_service.py",
+      "www/luci-static/resources/view/freeisp/pppoe.js",
+      "www/luci-static/resources/view/freeisp/hotspot.js",
+      "www/luci-static/freeisp/navigation.js",
+      "www/luci-static/freeisp/release.json"
+    ],
+    "backup": "/root/freeisp-backups/menu-32ca01904916-1791402211133518606",
+    "rollback_command": "python3 /root/freeisp-backups/menu-32ca01904916-1791402211133518606/rollback.py",
+    "services_restarted": false,
+    "manifest_verified_over_http": true
+  },
+  "live_router_menu_preview": {
+    "results": [
+      {
+        "route": "status/overview",
+        "shellMs": 94,
+        "readyMs": 9990,
+        "state": "ready",
+        "documents": 1,
+        "heading": "",
+        "pollCount": 1
+      },
+      {
+        "route": "services/nlbw/display",
+        "shellMs": 43,
+        "readyMs": 4750,
+        "state": "ready",
+        "documents": 1,
+        "heading": "Netlink Bandwidth Monitor",
+        "pollCount": 0
+      },
+      {
+        "route": "system/package-manager",
+        "shellMs": 63,
+        "readyMs": 4643,
+        "state": "ready",
+        "documents": 1,
+        "heading": "Software",
+        "pollCount": 0
+      },
+      {
+        "route": "network/freeisp_pppoe",
+        "shellMs": 42,
+        "readyMs": 953,
+        "state": "ready",
+        "documents": 1,
+        "heading": "PPPoE",
+        "pollCount": 1
+      },
+      {
+        "route": "network/freeisp_hotspot",
+        "shellMs": 33,
+        "readyMs": 1308,
+        "state": "ready",
+        "documents": 1,
+        "heading": "Hotspot",
+        "pollCount": 1
+      },
+      {
+        "route": "network/freeisp_interfaces",
+        "shellMs": 32,
+        "readyMs": 4432,
+        "state": "ready",
+        "documents": 1,
+        "heading": "Interfaces",
+        "pollCount": 1
+      },
+      {
+        "route": "wifi/interfaces",
+        "shellMs": 47,
+        "readyMs": 4376,
+        "state": "ready",
+        "documents": 1,
+        "heading": "",
+        "pollCount": 1
+      }
+    ],
+    "errors": []
   }
 }

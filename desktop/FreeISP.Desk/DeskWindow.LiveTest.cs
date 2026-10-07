@@ -29,6 +29,8 @@ namespace FreeISP.Desk {
     await WaitForScript("document.querySelector('#connection-strip').dataset.state==='live'","Live data did not recover.");
     await WaitForScript("document.querySelectorAll('.freeisp-sidebar nav button').length===21", "Full local sidebar is missing.");
     await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-route=freeisp]').click()");
+    await WaitForCheck(()=>preparingNavigation||!IsHub(browser.Source),"Router menu did not start.");
+    if(loading.Visible)throw new Exception("Menu navigation covered the existing sidebar.");
     await WaitForCheck(()=>!IsHub(browser.Source)&&!loading.Visible&&!navigating,"Router workspace did not open.",30000);
     await WaitForScript("!!window.freeispNavigation && document.querySelectorAll('.freeisp-sidebar a').length===21", "Shared router navigation is missing.");
     await browser.CoreWebView2.ExecuteScriptAsync("window.__deskSameDocument='ready';document.querySelector('.freeisp-sidebar a[href$=freeisp_pppoe]').click()");
