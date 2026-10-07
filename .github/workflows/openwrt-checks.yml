@@ -46,3 +46,22 @@ jobs:
           node --check openwrt/files/www/luci-static/resources/freeisp/command-line.js
           node --check openwrt/files/www/luci-static/resources/freeisp/command-line-backend.js
           node tools/openwrt/test-command-line.cjs
+      - name: Validate Hotspot integration and backend
+        run: |
+          python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp-hotspot.json > /dev/null
+          python3 -m json.tool openwrt/files/usr/share/rpcd/acl.d/luci-app-freeisp-hotspot.json > /dev/null
+          sh -n openwrt/files/etc/init.d/freeisp-hotspot
+          sh -n openwrt/files/usr/libexec/rpcd/freeisp.hotspot
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/hotspot.js
+          python3 -m unittest discover -s tools/openwrt -p 'test_hotspot*.py' -v
+      - name: Install browser test dependency
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Test Hotspot interface
+        run: node tools/openwrt/test-hotspot-ui.cjs
+      - name: Test Hotspot packets in disposable Linux namespaces
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y nftables iproute2 iputils-ping
+          sudo python3 tools/openwrt/test_hotspot_runtime.py -v

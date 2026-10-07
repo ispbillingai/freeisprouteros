@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var entries = [
         ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'], ['WiFi', 'wifi/interfaces'],
         ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/freeisp_bridge'],
-        ['PPPoE', 'network/freeisp_pppoe'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'],
+        ['PPPoE', 'network/freeisp_pppoe'], ['Hotspot', 'network/freeisp_hotspot'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'],
         ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
         ['Bandwidth', 'services/nlbw/display'], ['Administration', null],
         ['System', 'system/system'], ['Files', 'system/freeisp_files'], ['Log', 'status/freeisp_log'],

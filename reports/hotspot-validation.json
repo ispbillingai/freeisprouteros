@@ -1,0 +1,65 @@
+{
+  "validated_at_utc": "2026-10-07T17:29:07.331031+00:00",
+  "branch": "codex/hotspot-complete",
+  "scope": "Local code, isolated Linux namespaces and disposable OpenWrt 25.12.5 x86 VM; no live deployment",
+  "python": {
+    "unique_hotspot_tests": 70,
+    "portable_tests_passed": 54,
+    "kernel_packet_tests_passed": 16,
+    "note": "Discovery skips the 16 kernel tests; the separate namespace run passes them plus 7 repeated rendering checks."
+  },
+  "browser": {
+    "passed": true,
+    "engine": "Microsoft Edge 154 through Playwright 1.62.1",
+    "tabs": 11,
+    "editable_collections": 8,
+    "coverage": [
+      "create/edit/remove/enable/disable",
+      "filter and selection",
+      "setup and reset HTML",
+      "disconnect and cookies",
+      "input validation and conflict responses",
+      "permission and failure recovery",
+      "keyboard tabs and live refresh",
+      "day/night/mobile layouts"
+    ]
+  },
+  "existing_network_regressions_passed": 7,
+  "quickset_validation_passed": true,
+  "overlay_syntax_and_acl_validation_passed": true,
+  "openwrt_vm": {
+    "checks": {
+      "openwrt_authenticated_boot": true,
+      "installed_hotspot_rpc_responds": true,
+      "all_eleven_collections_available": true,
+      "anonymous_snapshot_denied": true,
+      "anonymous_mutation_denied": true,
+      "customer_interface_discovered": true,
+      "profile_save_via_rpc": true,
+      "profile_visible_after_save": true,
+      "profile_remove_via_rpc": true,
+      "real_server_setup_and_enforcement": true,
+      "real_users_save_toggle_remove": true,
+      "real_ip_bindings_save_toggle_remove": true,
+      "real_service_ports_save_toggle_remove": true,
+      "real_walled_garden_save_toggle_remove": true,
+      "real_walled_garden_ip_save_toggle_remove": true,
+      "real_portal_reset": true,
+      "real_server_profile_disable_reenable": true,
+      "openwrt_firewall_accepts_persistent_guard": true,
+      "real_server_disable_reenable_remove": true,
+      "asset_served_hotspot.js": true,
+      "asset_served_hotspot.css": true
+    },
+    "image_sha256": "81d7f136f786096377eb0a7df25af3b22c887149ab6c380499fb205a1d994788",
+    "complete": true
+  },
+  "source_sha256": {
+    "openwrt/files/usr/lib/freeisp/hotspot.py": "a2d2236e3dd5af803b680c102e7b66993ab1101e9bf394b49ceee4988fcda01f",
+    "openwrt/files/usr/lib/freeisp/hotspot_runtime.py": "f3534c5205417152bce0ae30fa777236faf7dc5287db34291e11f5e76770242e",
+    "openwrt/files/usr/lib/freeisp/hotspot_service.py": "3c2e20cd822f7c7df5965f7fb8b929c2e470ab9ee8f9eb514f9de950c143a459",
+    "openwrt/files/www/luci-static/resources/view/freeisp/hotspot.js": "83bacb490828aae7f936653255e7ad92bcf1904e0295c8ea57eca3f1aa57eda3",
+    "openwrt/files/www/luci-static/resources/freeisp/hotspot-data.js": "390bac1545259064058c84da241ce70c5da0ce3f628ca67aa26fa86eaec06ba5",
+    "openwrt/files/www/luci-static/resources/freeisp/hotspot.css": "2d81de984ea229156283dc56c67f74980518600b69e963eb33ca8ffa1690942e"
+  }
+}

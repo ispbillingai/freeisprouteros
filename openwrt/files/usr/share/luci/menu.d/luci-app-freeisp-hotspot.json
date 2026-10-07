@@ -1,0 +1,8 @@
+{
+  "admin/network/freeisp_hotspot": {
+    "title": "Hotspot",
+    "order": 7,
+    "action": {"type": "view", "path": "freeisp/hotspot"},
+    "depends": {"acl": ["luci-app-freeisp-hotspot"]}
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "luci-app-freeisp-hotspot": {
+    "description": "FreeISP Hotspot configuration and connected customers",
+    "read": {"ubus": {"freeisp.hotspot": ["snapshot"]}},
+    "write": {"ubus": {"freeisp.hotspot": ["mutate"]}}
+  }
+}

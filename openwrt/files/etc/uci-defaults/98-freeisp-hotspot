@@ -1,0 +1,7 @@
+#!/bin/sh
+# Installing Hotspot does not enable interception on any customer interface.
+set -eu
+mkdir -p /etc/freeisp
+chmod 700 /etc/freeisp
+/etc/init.d/freeisp-hotspot enable
+exit 0

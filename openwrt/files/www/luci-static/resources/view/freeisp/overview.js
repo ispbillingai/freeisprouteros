@@ -13,6 +13,7 @@ return view.extend({
             ['Interfaces', 'Ports, addresses and PPPoE client connections.', ['network','network']],
             ['Bridge / VLAN', 'Bridge ports, tagged and untagged VLANs and learned hosts.', ['network','freeisp_bridge']],
             ['Files', 'Persistent router file storage, upload and download.', ['system','freeisp_files']],
+            ['Hotspot', 'Captive access, local accounts, profiles and active sessions.', ['network','freeisp_hotspot']],
             ['PPPoE', 'Servers, subscriber secrets, profiles, address pools and active connections.', ['network','freeisp_pppoe']],
             ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],
@@ -37,7 +38,7 @@ return view.extend({
             E('div', {'class':'freeisp-note'}, [
                 E('strong', {}, 'Your platform, with a tested foundation.'),
                 E('p', {}, 'Choose FreeISP, FreeISP Night, Bootstrap or OpenWrt 2020 under System → System → Language and Style. Router settings and add-on packages remain available through LuCI.'),
-                E('p', {}, 'This target is a virtual router. It has no wireless radio or hardware switch. Configure subscriber services under PPPoE. Hotspot and FreeISP billing plans remain additional work. RADIUS is excluded. SQM is not a per-subscriber billing system.'),
+                E('p', {}, 'This target is a virtual router. It has no wireless radio or hardware switch. Configure subscriber services under PPPoE. FreeISP billing plans remain additional work. RADIUS is excluded. SQM is not a per-subscriber billing system.'),
                 E('p', {}, 'Keep a settings backup. Hardware images must match their exact device; this image is for a virtual machine.')
             ])
         ]);

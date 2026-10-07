@@ -1,0 +1,21 @@
+#!/bin/sh /etc/rc.common
+START=18
+STOP=89
+USE_PROCD=1
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /usr/bin/python3 /usr/lib/freeisp/hotspot_service.py serve
+    procd_set_param respawn 3600 5 5
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_set_param file /etc/freeisp/hotspot.json
+    procd_close_instance
+}
+
+service_triggers() {
+    procd_add_reload_trigger firewall network
+}
+
+# Do not remove firewall rules on stop: authorizations expire within 30 seconds.
+# The persistent fw4 guard also prevents forwarding before the daemon starts.

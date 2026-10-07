@@ -87,7 +87,7 @@ SQM field semantics follow the
 The [PPPoE subscriber service](PPPOE.md) adds server, secret, profile and address
 pool management, per-account rates and live session controls. Pools reserve stable
 addresses per account. See its verification instructions and platform limits.
-Captive hotspot, billing plans, AP controller and the dashboard compatibility
+Billing plans, AP controller and the dashboard compatibility
 contract remain additional product work.
 RADIUS is explicitly out of scope. CAPsMAN, MetaROUTER, WinBox and MikroTik support.rif
 are vendor-specific features, not OpenWrt features that can be renamed into existence.
@@ -187,3 +187,5 @@ changes made since that backup. Physical hardware requires a separate recovery d
 Sources: [official release](https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/),
 [LuCI source](https://github.com/openwrt/luci/tree/openwrt-25.12),
 [Image Builder](https://openwrt.org/docs/guide-user/additional-software/imagebuilder).
+
+See [Hotspot](HOTSPOT.md) for captive-access behavior and verified limits.

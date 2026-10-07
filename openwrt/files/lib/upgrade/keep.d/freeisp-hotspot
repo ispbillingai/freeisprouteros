@@ -1,0 +1,2 @@
+/etc/freeisp/
+/etc/nftables.d/70-freeisp-hotspot-guard.nft

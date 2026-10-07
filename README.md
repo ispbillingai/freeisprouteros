@@ -25,7 +25,7 @@ Build outputs are kept under the ignored `artifacts/` directory.
 
 OpenWrt supplies the networking foundation. The [PPPoE service](openwrt/PPPOE.md)
 provides local subscriber accounts, profiles, address pools and rate limits.
-Captive hotspot and billing integration remain additional product work;
+Billing integration remains additional product work;
 a menu or installed package alone is not evidence that a feature has been tested.
 
 ## Supporting references
@@ -38,3 +38,5 @@ packet-test client, not a second router platform to develop. Its tools are in
 inventory. Despite its original filename, it does not add a RADIUS dependency.
 `freeisprouteros/audit.py` and `protocol.py` contain the associated host-side
 research utilities, not an implemented router compatibility service.
+
+See [Hotspot](openwrt/HOTSPOT.md) for captive-access behavior and verified limits.
