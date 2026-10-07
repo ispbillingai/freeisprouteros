@@ -6,11 +6,15 @@
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>FreeISP Desk</AssemblyName>
     <RootNamespace>FreeISP.Desk</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Description>FreeISP Windows router manager</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Hub\**\*" LogicalName="FreeISP.Bundle.Hub.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)/microsoft.web.webview2/1.0.4191.47/lib/net462/Microsoft.Web.WebView2.Core.dll" LogicalName="FreeISP.Bundle.Microsoft.Web.WebView2.Core.dll" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)/microsoft.web.webview2/1.0.4191.47/lib/net462/Microsoft.Web.WebView2.WinForms.dll" LogicalName="FreeISP.Bundle.Microsoft.Web.WebView2.WinForms.dll" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)/microsoft.web.webview2/1.0.4191.47/runtimes/win-x64/native/WebView2Loader.dll" LogicalName="FreeISP.Bundle.WebView2Loader.dll" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web.Extensions" />
     <Content Include="Hub\**\*" CopyToOutputDirectory="PreserveNewest" />

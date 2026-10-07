@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
@@ -14,18 +17,37 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 namespace FreeISP.Desk {
  internal static class Program {
-  [STAThread] static void Main(){Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new DeskWindow());}
+  internal static string Assets;
+  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool SetDllDirectory(string path);
+  [STAThread] static void Main(){
+   try{
+    var assembly=Assembly.GetExecutingAssembly();
+    Assets=Path.Combine(Environment.GetCommandLineArgs().Contains("--self-test")?AppDomain.CurrentDomain.BaseDirectory:Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"FreeISP","Desk","Components",assembly.ManifestModule.ModuleVersionId.ToString("N"));
+    Directory.CreateDirectory(Path.Combine(Assets,"Hub"));
+    foreach(var resource in assembly.GetManifestResourceNames().Where(n=>n.StartsWith("FreeISP.Bundle."))){
+     string relative=resource.Substring("FreeISP.Bundle.".Length);if(relative.StartsWith("Hub."))relative=Path.Combine("Hub",relative.Substring(4));
+     string path=Path.Combine(Assets,relative);
+     if(!File.Exists(path))using(var input=assembly.GetManifestResourceStream(resource))using(var output=File.Create(path))input.CopyTo(output);
+    }
+    if(!SetDllDirectory(Assets))throw new Exception("Could not load the bundled browser components.");
+    AppDomain.CurrentDomain.AssemblyResolve+=(s,e)=>{string name=new AssemblyName(e.Name).Name;if(name!="Microsoft.Web.WebView2.Core"&&name!="Microsoft.Web.WebView2.WinForms")return null;return Assembly.LoadFrom(Path.Combine(Assets,name+".dll"));};
+    Launch();
+   }catch(Exception ex){if(Environment.GetCommandLineArgs().Contains("--self-test")){File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test-error.txt"),ex.ToString());Environment.Exit(1);}MessageBox.Show("FreeISP Desk could not start.\n\n"+ex.Message,"FreeISP Desk",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+  }
+  [MethodImpl(MethodImplOptions.NoInlining)] static void Launch(){Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new DeskWindow());}
  }
  public class RouterEntry { public string name {get;set;} public string address {get;set;} public string username {get;set;} public string source {get;set;} }
  internal sealed class DeskWindow:Form {
-  const string Hub="https://freeisp-desk.local/";
+  const string Hub="https://freeisp-desk.local/index.html";
   readonly WebView2 browser=new WebView2{Dock=DockStyle.Fill};
   readonly JavaScriptSerializer json=new JavaScriptSerializer();
-  readonly string data=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"FreeISP","Desk");
+  readonly string data=Path.Combine(Environment.GetCommandLineArgs().Contains("--self-test")?AppDomain.CurrentDomain.BaseDirectory:Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"FreeISP","Desk");
   readonly Panel controls=new Panel{Dock=DockStyle.Top,Height=40,BackColor=Color.FromArgb(11,36,53),Visible=false};
   Uri router; bool busy; bool scanning;
+  readonly bool selfTest=Environment.GetCommandLineArgs().Contains("--self-test");
   public DeskWindow(){
    Text="FreeISP Desk";Size=new Size(1320,900);MinimumSize=new Size(960,650);StartPosition=FormStartPosition.CenterScreen;
+   if(selfTest){ShowInTaskbar=false;Opacity=0;var timer=new Timer{Interval=45000};timer.Tick+=(s,e)=>{File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),"{\"passed\":false,\"error\":\"timeout\"}");Environment.Exit(1);};timer.Start();}
    var home=new Button{Text="← Device Hub",Left=12,Top=6,Width=120,Height=28};home.Click+=(s,e)=>ShowHub();
    var reload=new Button{Text="Reload",Left=140,Top=6,Width=80,Height=28};reload.Click+=(s,e)=>browser.Reload();
    var logout=new Button{Text="Disconnect",Left=228,Top=6,Width=95,Height=28};logout.Click+=async(s,e)=>{router=null;browser.CoreWebView2.Stop();await browser.CoreWebView2.Profile.ClearBrowsingDataAsync();ShowHub();};
@@ -34,13 +56,17 @@ namespace FreeISP.Desk {
     Directory.CreateDirectory(data);
     await browser.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(null,Path.Combine(data,"Browser")));
     var core=browser.CoreWebView2;
-    core.SetVirtualHostNameToFolderMapping("freeisp-desk.local",Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Hub"),CoreWebView2HostResourceAccessKind.DenyCors);
+    if(selfTest){core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);core.WebResourceRequested+=(resourceSender,resourceEvent)=>{Uri u;if(!Uri.TryCreate(resourceEvent.Request.Uri,UriKind.Absolute,out u)||!IsHub(u))resourceEvent.Response=core.Environment.CreateWebResourceResponse(new MemoryStream(),503,"Offline test","");};}
+    string hubFolder=Path.Combine(Program.Assets,"Hub");
+    foreach(string file in new[]{"index.html","hub.css","hub.js"})
+     if(!File.Exists(Path.Combine(hubFolder,file)))throw new FileNotFoundException("A bundled app file is missing. Download FreeISP Desk again. Missing: Hub/"+file);
+    core.SetVirtualHostNameToFolderMapping("freeisp-desk.local",hubFolder,CoreWebView2HostResourceAccessKind.DenyCors);
     core.Settings.IsPasswordAutosaveEnabled=false;core.Settings.IsGeneralAutofillEnabled=false;
     core.WebMessageReceived+=HandleMessage;
     core.NavigationStarting+=(sender,args)=>{Uri target;if(!Uri.TryCreate(args.Uri,UriKind.Absolute,out target)||(!IsHub(target)&&!SameRouter(target)))args.Cancel=true;};
     core.NewWindowRequested+=(sender,args)=>args.Handled=true;
     core.NavigationCompleted+=async(sender,args)=>{
-     if(IsHub(browser.Source)){controls.Visible=false;await Send(new{type="routers",routers=ReadRouters()});}
+     if(IsHub(browser.Source)){controls.Visible=false;if(selfTest){await Task.Delay(400);string result=await core.ExecuteScriptAsync("JSON.stringify({passed:!!document.querySelector('#connection') && !!document.querySelector('#scan') && getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)',url:location.href,bridge:!!window.chrome.webview,logo:document.querySelector('.original-logo').naturalWidth>0})");File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.json"),json.Deserialize<string>(result));using(var image=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"self-test.png")))await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,image);Close();return;}if(!args.IsSuccess){MessageBox.Show("The bundled Device Hub could not load: "+args.WebErrorStatus+". Reopen the app or download it again. No internet or router connection is needed for this screen.",Text);return;}await Send(new{type="routers",routers=ReadRouters()});}
      else if(!args.IsSuccess){ShowHub();MessageBox.Show("Could not reach the router. Check its address and your SSH tunnel. Certificate checks remain enabled.",Text);}
     };
     ShowHub();
