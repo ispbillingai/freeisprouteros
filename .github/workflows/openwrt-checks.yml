@@ -16,3 +16,5 @@ jobs:
           for f in tools/openwrt/*.sh openwrt/files/etc/uci-defaults/* openwrt/files/usr/bin/*; do sh -n "$f"; done
           python3 -m json.tool openwrt/files/usr/share/luci/menu.d/luci-app-freeisp.json > /dev/null
           node --check openwrt/files/www/luci-static/resources/view/freeisp/overview.js
+          node --check openwrt/files/www/luci-static/freeisp/navigation.js
+          python3 -m py_compile tools/openwrt/verify.py

@@ -7,7 +7,7 @@ git diff --cached --exit-code
 [ "$(id -u)" = 0 ] || exit 1
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y --no-install-recommends build-essential gawk libncurses-dev libssl-dev zlib1g-dev python3 python3-setuptools rsync unzip file wget curl zstd qemu-system-x86 qemu-utils
+apt-get install -y --no-install-recommends build-essential gawk libncurses-dev libssl-dev zlib1g-dev python3 python3-setuptools rsync unzip file wget curl zstd qemu-system-x86 qemu-utils openssh-client sshpass
 sh tools/openwrt/build.sh
 OUT="$PROJECT/artifacts/releases/freeisp-openwrt"
 # Never overwrite a running or previously configured appliance disk.

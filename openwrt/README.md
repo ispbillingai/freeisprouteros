@@ -12,7 +12,7 @@ Feed package versions can change; each image records its installed manifest and 
 
 - `files/` is the FreeISP overlay; upstream OpenWrt code stays intact.
 - `packages.txt` selects official packages. No RADIUS service or integration is included.
-- FreeISP and FreeISP Night add CSS on top of LuCI Bootstrap. Bootstrap and OpenWrt 2020 remain selectable.
+- FreeISP and FreeISP Night add compact, WinBox-inspired left navigation and CSS on top of LuCI Bootstrap. Bootstrap and OpenWrt 2020 remain selectable.
 - The FreeISP landing view links to real LuCI controls, not simulated settings.
 - Themes, logo, menu, modules and defaults can be changed independently of the operating system.
 - Upstream copyright and licensing notices are retained. Theme templates retain Apache-2.0 notices.
