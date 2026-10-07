@@ -35,7 +35,7 @@ return view.extend({
         var proto=uci.get('network','wan','proto') || 'dhcp';
         function mark(){return E('span',{'class':'freeisp-mark','aria-hidden':'true'},[E('i'),E('i'),E('i')]);}
         var root=E('div',{'class':'qs-window'},[
-            E('link',{rel:'stylesheet',href:L.resource('freeisp/quickset.css')}),
+            E('link',{rel:'stylesheet',href:L.resource('freeisp/quickset.css')+'?v=day-night-3'}),
             E('div',{'class':'qs-heading'},[E('div',{},[E('h2',{},'Quick Set'),E('p',{},'Your network, configured.')]),E('span',{'class':'qs-status',role:'status'},'Settings loaded')]),
             E('div',{'class':'qs-route','aria-label':'Network connections'},[
                 E('div',{'class':'qs-node'},[E('b',{},'01'),E('div',{},[E('strong',{},'Internet'),E('small',{},current.address || 'No address')])]),
