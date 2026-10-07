@@ -37,7 +37,7 @@ This is a guest VM, not a replacement for the Ubuntu host. Host routes are untou
 Three MAC-assigned NICs: WAN, bridged LAN 10.77.0.1/24, maintenance 10.78.0.15/24.
 LAN DHCP pool 10.77.0.100–199; management stays separate from LAN changes.
 The host publishes management only on loopback, reached via SSH. LAN management uses HTTPS.
-The default build has no Wi-Fi hardware and is not suitable for Tenda flashing.
+The default VM build has no Wi-Fi hardware. Physical routers require a device-specific build.
 
 On an Ubuntu build host, from a GitHub checkout:
 

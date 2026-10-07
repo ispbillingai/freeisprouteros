@@ -1,52 +1,39 @@
 # FreeISP Router OS
 
-FreeISP now builds on **OpenWrt**, with its own themes, landing interface, package
-selection and future subscriber controls. This reuses OpenWrt's networking, drivers,
-LuCI configuration and recovery tools instead of developing another network stack.
-See [the active OpenWrt build](openwrt/README.md). **RADIUS is excluded.**
-Laptop, small-PC and Raspberry Pi builds are later targets; this release targets a VM.
+FreeISP builds on **OpenWrt**, with our own interface, Day and Night themes,
+package selection and releases. **FreeISP Desk** is the Windows management app.
+RADIUS is excluded from the product.
 
-## Earlier Linux lab (retained for reference)
+## Active projects
 
-The first lab boots Linux and implements IPv4 WAN DHCP, LAN DHCP/DNS, routing,
-NAT, a firewall, authenticated HTTPS management and configuration backup/restore.
-Changes require confirmation within 60 seconds; otherwise the previous settings
-are restored. A restart loads the last confirmed configuration from a separate disk.
+- [OpenWrt platform](openwrt/README.md): router configuration, networking,
+  FreeISP Quick Set, themes and image builds. Source overlays live in `openwrt/`;
+  build and validation tools live in `tools/openwrt/`.
+- [FreeISP Desk](desktop/README.md): the Windows app, local device hub,
+  saved connections and gateway discovery. Source lives in `desktop/`.
+  The device hub opens locally; connecting requires a reachable router.
 
-Read [the Linux lab instructions](linux/README.md) for building, running and recovery.
-The image runs inside a VM and does not change the host's routing or firewall.
-Management is bound to the host loopback address and can be reached over an SSH tunnel.
+The current router target is an x86/64 virtual machine. Physical devices need
+separate supported hardware targets, builds and validation.
 
-Validation boots both a router VM and a customer VM, checks real DHCP/DNS and
-routed HTTP traffic, verifies WAN management isolation, and exercises configuration
-recovery and persistence. Results are written to `reports/linux-vm-validation.json`.
-Software tests are not a claim of physical hardware compatibility or ISP capacity.
+## Development and releases
 
-## Not implemented yet
+Use the instructions in each active project's README. Develop parallel features
+in separate Git worktrees, review and test changes, then push to GitHub before
+VPS deployment. Keep credentials, personalized images and private backups out of Git.
+Build outputs are kept under the ignored `artifacts/` directory.
 
-PPPoE server, hotspot/vouchers, subscriber rate limits, Wi-Fi management,
-RouterOS API compatibility, system-image updates and automatic image rollback remain
-future work. No customer should depend on this development lab for service.
+OpenWrt supplies the networking foundation. Subscriber accounts, PPPoE server,
+captive hotspot and per-subscriber enforcement remain additional product work;
+a menu or installed package alone is not evidence that a feature has been tested.
 
-## Development
+## Supporting references
 
-Use a dedicated Ubuntu 24.04 development machine or VPS. QEMU uses KVM when available
-and slower software emulation otherwise. The build verifies an official Alpine
-minirootfs checksum and obtains packages through its signed repositories.
+The earlier [Linux VM lab](linux/README.md) remains a migration reference and
+packet-test client, not a second router platform to develop. Its tools are in
+`tools/linux/`.
 
-```sh
-sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils curl ca-certificates cpio e2fsprogs python3
-sudo sh tools/linux/prepare.sh
-sudo sh tools/linux/validate.sh
-```
-
-`tools/linux/deploy.sh` builds and tests an already-cloned Git commit, then starts
-the VM under a dedicated unprivileged service account. Deploy from GitHub first.
-Do not put server passwords, lab credentials, state disks or private backups in Git.
-
-## Previous F3 experiment — withdrawn
-
-The earlier Tenda F3 candidate was uploaded by the user, who reported no lights
-and no management response afterwards. Ethernet link remained active. Its cause
-and recovery are unresolved. That build is withdrawn and must not be installed on
-another router. The Linux lab is separate and does not reuse the F3 hardware drivers.
+`reports/radius-api-inventory.json` preserves the historical dashboard command
+inventory. Despite its original filename, it does not add a RADIUS dependency.
+`freeisprouteros/audit.py` and `protocol.py` contain the associated host-side
+research utilities, not an implemented router compatibility service.
