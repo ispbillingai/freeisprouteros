@@ -9,6 +9,7 @@ return view.extend({
     load: function() { return Promise.all([board(), info()]); },
     render: function(data) {
         var links = [
+            ['WiFi', 'Interfaces, security profiles, channels, access lists and connected clients.', ['wifi','interfaces']],
             ['Interfaces & bridges', 'Ports, addresses, bridges, VLANs and PPPoE client connections.', ['network','network']],
             ['Firewall & NAT', 'Zones, forwarding rules, port forwards and traffic rules.', ['network','firewall']],
             ['DHCP', 'Address pools and static leases for your customer network.', ['network','dhcp']],

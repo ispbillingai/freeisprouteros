@@ -16,6 +16,8 @@ printf '%s  %s\n' '313221253d9bac534e4a4ee6492a4941b4ba0f43200eceb8d16a4785470ae
 cp -a "$PROJECT/openwrt/files/." "$FILES/"
 chmod 755 "$FILES/etc/uci-defaults/99-freeisp" "$FILES/usr/bin/freeisp-resources"
 chmod 755 "$FILES/usr/libexec/freeisp-bridge-status"
+chmod 755 "$FILES/etc/uci-defaults/98-freeisp-wifi" "$FILES/etc/uci-defaults/99-freeisp" "$FILES/usr/bin/freeisp-resources"
+chmod 600 "$FILES/etc/config/freeisp_wifi"
 mkdir -p "$FILES/etc/freeisp"
 export FREEISP_FILES="$FILES"
 python3 - <<'PY'

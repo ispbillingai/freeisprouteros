@@ -61,10 +61,10 @@ return view.extend({
                     row('DHCP range',input('range',range)),check('nat','NAT',!!zone && zone.masq==='1',!zone),
                     E('div',{'class':'qs-end'},[link('Port mapping →',['network','firewall','forwards']),link('Bridge / VLAN →',['network','freeisp_bridge'])])
                 ]),
-                section('03 / Wireless',[
-                    E('div',{'class':'qs-empty-state'},[E('div',{},[E('strong',{},'No radio detected'),E('p',{},'Wireless is unavailable on this virtual router.')])]),
-                    unavailable('Network name','Unavailable'),unavailable('Security','Unavailable'),
-                    E('p',{'class':'qs-hint'},'Wireless controls require a supported radio and driver.')
+                section('03 / WiFi',[
+                    E('div',{'class':'qs-empty-state'},[E('div',{},[E('strong',{},'Radios & wireless networks'),E('p',{},'Manage WiFi interfaces, security profiles, channels and connected clients.')])]),
+                    link('Open WiFi →',['wifi','interfaces']),
+                    E('p',{'class':'qs-hint'},'A supported radio and driver are required. The current VM has no WiFi hardware.')
                 ]),
                 section('04 / System',[
                     row('Router name',input('hostname',system ? system.hostname : 'FreeISP')),

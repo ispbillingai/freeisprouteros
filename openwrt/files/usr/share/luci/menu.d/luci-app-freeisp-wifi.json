@@ -1,0 +1,35 @@
+{
+  "admin/wifi": {
+    "title": "WiFi", "order": 21,
+    "action": { "type": "firstchild" },
+    "depends": { "acl": ["luci-mod-network-config", "luci-app-freeisp-wifi"] }
+  },
+  "admin/wifi/interfaces": {
+    "title": "WiFi Interfaces", "order": 1,
+    "action": { "type": "view", "path": "network/wireless" }
+  },
+  "admin/wifi/profiles": {
+    "title": "Security Profiles", "order": 2,
+    "action": { "type": "view", "path": "freeisp/wifi-profiles" }
+  },
+  "admin/wifi/channels": {
+    "title": "Channels", "order": 3,
+    "action": { "type": "view", "path": "freeisp/wifi-status" }
+  },
+  "admin/wifi/access": {
+    "title": "Access List", "order": 4,
+    "action": { "type": "view", "path": "freeisp/wifi-status" }
+  },
+  "admin/wifi/registration": {
+    "title": "Registration", "order": 5,
+    "action": { "type": "view", "path": "freeisp/wifi-status" }
+  },
+  "admin/wifi/connect": {
+    "title": "Connect List", "order": 6,
+    "action": { "type": "view", "path": "freeisp/wifi-status" }
+  },
+  "admin/wifi/tools": {
+    "title": "Tools & Coverage", "order": 7,
+    "action": { "type": "view", "path": "freeisp/wifi-status" }
+  }
+}

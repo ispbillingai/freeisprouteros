@@ -1,0 +1,22 @@
+name: WiFi configuration checks
+on:
+  push:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/wifi-checks.yml']
+  pull_request:
+    paths: ['openwrt/**', 'tools/openwrt/**', '.github/workflows/wifi-checks.yml']
+permissions:
+  contents: read
+jobs:
+  wifi:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: WiFi profile safety and view tests
+        run: |
+          node tools/openwrt/test-wifi.cjs
+          node tools/openwrt/test-wifi-views.cjs
+          node --check openwrt/files/www/luci-static/freeisp/wifi-navigation.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/wifi-profiles.js
+          node --check openwrt/files/www/luci-static/resources/view/freeisp/wifi-status.js
+          sh -n openwrt/files/etc/uci-defaults/98-freeisp-wifi
+          sh -n tools/openwrt/build.sh

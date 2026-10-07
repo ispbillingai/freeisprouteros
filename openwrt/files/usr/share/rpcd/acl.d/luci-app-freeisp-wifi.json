@@ -1,0 +1,15 @@
+{
+  "luci-app-freeisp-wifi": {
+    "description": "FreeISP WiFi status and reusable security profiles",
+    "read": {
+      "uci": ["wireless", "freeisp_wifi"],
+      "ubus": {
+        "iwinfo": ["freqlist", "assoclist"],
+        "network.wireless": ["status"],
+        "luci-rpc": ["getWirelessDevices", "getNetworkDevices", "getHostHints"],
+        "network.interface": ["dump"]
+      }
+    },
+    "write": { "uci": ["wireless", "freeisp_wifi"] }
+  }
+}

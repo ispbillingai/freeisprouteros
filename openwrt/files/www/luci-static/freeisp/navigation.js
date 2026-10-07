@@ -11,6 +11,11 @@
 })();
 document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('input[name="luci_password"]')) return;
+    if (location.pathname.indexOf('/cgi-bin/luci/admin/wifi') === 0) {
+        var wifiScript = document.createElement('script');
+        wifiScript.src = '/luci-static/freeisp/wifi-navigation.js?v=1';
+        document.head.appendChild(wifiScript);
+    }
     var sidebar = document.createElement('nav');
     sidebar.className = 'freeisp-sidebar';
     sidebar.setAttribute('aria-label', 'Router navigation');
@@ -29,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     var activeAssigned = false;
     var entries = [
-        ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'],
+        ['Workspace', null], ['Quick Set', 'freeisp'], ['Overview', 'status/overview'], ['WiFi', 'wifi/interfaces'],
         ['Network', null], ['Interfaces', 'network/network'], ['Bridge / VLAN', 'network/freeisp_bridge'],
         ['PPP clients', 'network/network'], ['IP · DHCP', 'network/dhcp'], ['IP · DNS', 'network/dns'],
         ['IP · Firewall', 'network/firewall'], ['Routing', 'network/routes'], ['Queues', 'network/freeisp_queues'],
@@ -48,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
             path.setAttribute('fill','none'); path.setAttribute('stroke','currentColor'); path.setAttribute('stroke-width','1.6'); path.setAttribute('stroke-linecap','round'); path.setAttribute('stroke-linejoin','round');
             svg.appendChild(path); element.prepend(svg);
             element.href = '/cgi-bin/luci/admin/' + item[1];
-            if (!activeAssigned && location.pathname === element.pathname) { element.classList.add('active'); element.setAttribute('aria-current','page'); activeAssigned = true; }
+            if (!activeAssigned && (location.pathname === element.pathname || (item[1] === 'wifi/interfaces' && /^\/cgi-bin\/luci\/admin\/wifi(?:\/|$)/.test(location.pathname)))) { element.classList.add('active'); element.setAttribute('aria-current','page'); activeAssigned = true; }
         } else element.className = 'group';
         sidebar.appendChild(element);
     });

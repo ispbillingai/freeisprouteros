@@ -1,0 +1,7 @@
+.fi-wifi-navigation{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 22px;padding:8px;background:var(--fi-panel,#fff);border:1px solid var(--fi-line,#d8e5ed);border-radius:8px}
+.fi-wifi-navigation a{padding:9px 13px;border-radius:5px;text-decoration:none;color:var(--fi-muted,#526c80)}
+.fi-wifi-navigation a[aria-current=page]{background:var(--fi-tint,#e0f7f5);color:var(--fi-accent,#008b91);font-weight:650}
+.fi-wifi-note{color:var(--fi-muted,#526c80);line-height:1.6;margin:14px 0}
+.fi-wifi-table{margin:18px 0;min-width:760px;width:100%}.fi-wifi-table .td,.fi-wifi-table .th{padding:12px;text-align:left;overflow-wrap:break-word}.fi-wifi-table .th{white-space:nowrap}
+.fi-wifi-content .table-responsive{overflow-x:auto}.fi-wifi-content .cbi-section{margin-top:20px}
+.fi-wifi-choices{display:grid;gap:12px;margin:20px 0}.fi-wifi-choices label{display:flex;gap:8px;align-items:center}

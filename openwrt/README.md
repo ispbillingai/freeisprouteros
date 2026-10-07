@@ -110,6 +110,10 @@ as root. This creates a disposable VM using a copy of the supplied image,
 exercises rpcd and CGI actions, checks restricted accounts and two guest reboots,
 then removes the temporary disk. Reports are under `artifacts/tests/files`.
 This does not deploy to the VPS or test customer packet forwarding.
+The [WiFi workspace](WIFI.md) groups the native WiFi editor with reusable personal
+security profiles, channels, access rules, registration status and client
+connections. Its coverage, backend behavior and remaining hardware tests are
+documented separately. The VM still has no WiFi radio.
 
 ## VPS lab and access
 
